@@ -1,0 +1,56 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+
+# -------------------------
+# Virtual environments / Conda
+# -------------------------
+.env
+.venv/
+venv/
+ENV/
+env/
+.conda/
+conda-bld/
+*.conda
+*.spec
+
+# -------------------------
+# Jupyter / Anaconda
+# -------------------------
+notebooks/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+.virtual_documents/
+**/.virtual_documents/
+anaconda_projects/
+**/anaconda_projects/
+.jupyter/
+.jupyterlab/
+
+# -------------------------
+# OS / Editor
+# -------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+
+# -------------------------
+# Local or generated data
+# -------------------------
+data/raw/worship_availability.xlsx
+**/final_worship_planning_20260201.xlsx

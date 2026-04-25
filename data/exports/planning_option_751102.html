@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Planificación de Ministerio de Adoración Ágape</title>
+    <style>
+    
+    :root {
+      --page-bg: #f4f6f8;
+      --ink: #14181f;
+      --ink-soft: #515765;
+      --ink-muted: #6e7686;
+      --header-bg: #14181f;
+      --accent: #ebc850;
+      --card-bg: #ffffff;
+      --card-border: #e5e8ee;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px;
+      background: var(--page-bg);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .document {
+      display: grid;
+      gap: 32px;
+    }
+
+    .page {
+      width: min(100%, 1100px);
+      margin: 0 auto;
+      background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 24px 70px rgba(20, 24, 31, 0.08);
+      page-break-after: always;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .page-header {
+      background: var(--header-bg);
+      color: #ffffff;
+      padding: 36px 40px 28px;
+      border-bottom: 10px solid var(--accent);
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: end;
+    }
+
+    .page-header h1 {
+      margin: 0;
+      font-size: 2rem;
+      line-height: 1.1;
+      white-space: pre-line;
+    }
+
+    .page-header p {
+      margin: 10px 0 0;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 1rem;
+    }
+
+    .page-number {
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.88);
+      white-space: nowrap;
+    }
+
+    .page-body {
+      padding: 32px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .plan-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 22px;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+    }
+
+    .card-dates {
+      display: grid;
+      gap: 18px;
+      align-content: start;
+      padding-right: 20px;
+      border-right: 1px solid var(--card-border);
+    }
+
+    .date-block {
+      display: grid;
+      gap: 6px;
+    }
+
+    .date-label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      font-weight: 700;
+    }
+
+    .date-value {
+      font-size: 1.45rem;
+      line-height: 1.15;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .card-time {
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+    }
+
+    .card-roles {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .role-row {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 16px;
+      align-items: start;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #f0f2f5;
+    }
+
+    .role-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .role-label {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .role-value {
+      color: var(--ink-soft);
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 16px;
+      }
+
+      .page-header {
+        padding: 28px 22px 20px;
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .page-body {
+        padding: 18px;
+      }
+
+      .plan-card {
+        grid-template-columns: 1fr;
+      }
+
+      .card-dates {
+        border-right: none;
+        padding-right: 0;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--card-border);
+      }
+
+      .role-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: #ffffff;
+      }
+
+      .page {
+        width: 100%;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        break-inside: avoid;
+      }
+    }
+    
+    </style>
+  </head>
+  <body>
+    <main class="document">
+      
+            <section class="page">
+              <header class="page-header">
+                <div>
+                  <h1>Planificación de
+Ministerio de Adoración Ágape</h1>
+                  <p>31 Enero 2026 a 25 Julio 2026</p>
+                </div>
+                <div class="page-number">Página 1/7</div>
+              </header>
+              <div class="page-body">
+                
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">31 Enero 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">1 Febrero 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Samuel Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Tomás Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Lucía Rojas, Daniel Herrera</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">7 Febrero 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">8 Febrero 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Valentina Salazar</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Isabella Palacios, Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">14 Febrero 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">15 Febrero 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Tomás Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Mariana Campos</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Samuel Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Mateo Santos, Daniel Herrera</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">21 Febrero 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">22 Febrero 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Nicolás Mendoza</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Isabella Palacios, Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+            <section class="page">
+              <header class="page-header">
+                <div>
+                  <h1>Planificación de
+Ministerio de Adoración Ágape</h1>
+                  <p>31 Enero 2026 a 25 Julio 2026</p>
+                </div>
+                <div class="page-number">Página 2/7</div>
+              </header>
+              <div class="page-body">
+                
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">28 Febrero 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">1 Marzo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Sofía Medina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Mariana Campos</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Lucía Mendoza</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Gabriel Romero</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Lucía Rojas, Mariana Campos</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">7 Marzo 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">8 Marzo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Tomás Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Valentina Salazar</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Mateo Santos, Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">14 Marzo 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">15 Marzo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Isabella Palacios</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Valentina Fuentes</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Nicolás Mendoza, Valentina Fuentes</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">21 Marzo 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">22 Marzo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Lucía Rojas</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Mariana Campos</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Samuel Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+            <section class="page">
+              <header class="page-header">
+                <div>
+                  <h1>Planificación de
+Ministerio de Adoración Ágape</h1>
+                  <p>31 Enero 2026 a 25 Julio 2026</p>
+                </div>
+                <div class="page-number">Página 3/7</div>
+              </header>
+              <div class="page-body">
+                
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">28 Marzo 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">29 Marzo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Sofía Medina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Nicolás Mendoza</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Valentina Salazar</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Mateo Santos, Sofía Medina</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">4 Abril 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">5 Abril 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Tomás Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Lucía Mendoza</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Samuel Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">11 Abril 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">12 Abril 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Isabella Palacios, Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">18 Abril 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">19 Abril 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Gabriel Romero</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Mariana Campos</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Samuel Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Lucía Rojas, Daniel Herrera</div>
+        </div>
+        
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+            <section class="page">
+              <header class="page-header">
+                <div>
+                  <h1>Planificación de
+Ministerio de Adoración Ágape</h1>
+                  <p>31 Enero 2026 a 25 Julio 2026</p>
+                </div>
+                <div class="page-number">Página 4/7</div>
+              </header>
+              <div class="page-body">
+                
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">25 Abril 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">26 Abril 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Valentina Fuentes</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Sofía Medina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Nicolás Mendoza, Sofía Medina</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">2 Mayo 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">3 Mayo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Samuel Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Tomás Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Lucía Mendoza</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Mateo Santos, Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">9 Mayo 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">10 Mayo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Valentina Salazar</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Isabella Palacios, Daniel Herrera</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">16 Mayo 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">17 Mayo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Tomás Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Mariana Campos</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Gabriel Romero</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Lucía Rojas, Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+            <section class="page">
+              <header class="page-header">
+                <div>
+                  <h1>Planificación de
+Ministerio de Adoración Ágape</h1>
+                  <p>31 Enero 2026 a 25 Julio 2026</p>
+                </div>
+                <div class="page-number">Página 5/7</div>
+              </header>
+              <div class="page-body">
+                
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">23 Mayo 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">24 Mayo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Nicolás Mendoza</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Valentina Fuentes, Daniel Herrera</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">30 Mayo 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">31 Mayo 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Sofía Medina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Tomás Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Lucía Mendoza</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Samuel Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Mateo Santos, Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">6 Junio 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">7 Junio 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Valentina Salazar</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Nicolás Mendoza, Valentina Salazar</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">13 Junio 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">14 Junio 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Isabella Palacios</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Tomás Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+            <section class="page">
+              <header class="page-header">
+                <div>
+                  <h1>Planificación de
+Ministerio de Adoración Ágape</h1>
+                  <p>31 Enero 2026 a 25 Julio 2026</p>
+                </div>
+                <div class="page-number">Página 6/7</div>
+              </header>
+              <div class="page-body">
+                
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">20 Junio 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">21 Junio 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Lucía Rojas</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Mariana Campos</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Gabriel Romero</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Mateo Santos, Daniel Herrera</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">27 Junio 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">28 Junio 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Sofía Medina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Nicolás Mendoza</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Valentina Salazar</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Valentina Fuentes, Sofía Medina</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">4 Julio 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">5 Julio 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Tomás Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Lucía Mendoza</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Samuel Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">11 Julio 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">12 Julio 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Daniel Herrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Isabella Palacios, Daniel Herrera</div>
+        </div>
+        
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+            <section class="page">
+              <header class="page-header">
+                <div>
+                  <h1>Planificación de
+Ministerio de Adoración Ágape</h1>
+                  <p>31 Enero 2026 a 25 Julio 2026</p>
+                </div>
+                <div class="page-number">Página 7/7</div>
+              </header>
+              <div class="page-body">
+                
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">18 Julio 2026</div>
+          <div class="card-time">Sábado en la tarde</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">19 Julio 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Gabriel Romero</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Camila Miranda</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Mariana Campos</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Samuel Molina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Teclado</div>
+          <div class="role-value">Samuel Ortega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Mateo Santos, Camila Miranda</div>
+        </div>
+        
+      </div>
+    </article>
+    
+
+    <article class="plan-card">
+      <div class="card-dates">
+        <div class="date-block">
+          <div class="date-label">Ensayo</div>
+          <div class="date-value">25 Julio 2026</div>
+          <div class="card-time">Sábado en la mañana</div>
+        </div>
+        <div class="date-block">
+          <div class="date-label">Presentación</div>
+          <div class="date-value">26 Julio 2026</div>
+        </div>
+      </div>
+      <div class="card-roles">
+        
+        <div class="role-row">
+          <div class="role-label">Director</div>
+          <div class="role-value">Valentina Fuentes</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Guitarra</div>
+          <div class="role-value">Sofía Medina</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Batería</div>
+          <div class="role-value">Bruno Vega</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Bajo</div>
+          <div class="role-value">Mateo Cabrera</div>
+        </div>
+        
+
+        <div class="role-row">
+          <div class="role-label">Coristas</div>
+          <div class="role-value">Nicolás Mendoza, Sofía Medina</div>
+        </div>
+        
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+    </main>
+  </body>
+</html>
