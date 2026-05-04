@@ -54,3 +54,8 @@ Thumbs.db
 # -------------------------
 data/raw/worship_availability.xlsx
 **/final_worship_planning_20260201.xlsx
+
+# -------------------------
+# Notes
+# -------------------------
+notes.txt

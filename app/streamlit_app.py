@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import altair as alt
 import streamlit as st
 
-from src.data.load_data import PROCESSED_DIR, load_processed_plans_data
+from src.data.load_data import PROCESSED_DIR, load_interim_availability_data, load_processed_plans_data
+from src.reporting.availability_profile import build_availability_profile
 from src.reporting.dashboard_view import build_dashboard_view
 from src.reporting.plan_evaluation import DEFAULT_WEIGHTS, evaluate_plan_collection
 
@@ -32,15 +34,29 @@ PARTICIPANTS_TABLE_FORMAT = {
     "Max Consecutive Weeks": "{:.0f}",
 }
 MISSING_TABLE_FORMAT = {"Missing Core Roles": "{:.0f}"}
+AVAILABILITY_TABLE_FORMAT = {
+    "Available Members": "{:.0f}",
+    "Members": "{:.0f}",
+    "Saturday Options": "{:.0f}",
+    "Rehearsal Time Options": "{:.0f}",
+}
 
 
 @st.cache_data(show_spinner=False)
 def load_dashboard_data(
     processed_dir: str,
 ) -> dict:
-    plans = load_processed_plans_data(Path(processed_dir))
+    plans = load_processed_plans_data()
     summary_df, results, best_plan_id = evaluate_plan_collection(plans, DEFAULT_WEIGHTS)
     dashboard_view = build_dashboard_view(summary_df, results, plans, best_plan_id)
+
+    try:
+        availability_df = load_interim_availability_data()
+    except FileNotFoundError:
+        dashboard_view["availability_profile"] = None
+    else:
+        dashboard_view["availability_profile"] = build_availability_profile(availability_df)
+
     return dashboard_view
 
 
@@ -116,6 +132,55 @@ def render_plan_tables(plan_view: dict) -> None:
     )
 
 
+def render_score_contribution_chart(chart_df, score_weights: dict[str, float]) -> None:
+    chart_data = chart_df.reset_index().melt(
+        id_vars="Plan",
+        var_name="Score",
+        value_name="Weighted Contribution",
+    )
+    chart_data["Weight"] = chart_data["Score"].str.lower().map(score_weights)
+
+    chart = (
+        alt.Chart(chart_data)
+        .mark_bar()
+        .encode(
+            x=alt.X("Plan:N", sort=None, title="Plan", axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("Weighted Contribution:Q", stack="zero", title="Overall Score"),
+            color=alt.Color("Score:N", title="Score"),
+            order=alt.Order("Weight:Q", sort="descending"),
+            tooltip=[
+                alt.Tooltip("Plan:N"),
+                alt.Tooltip("Score:N"),
+                alt.Tooltip("Weight:Q", format=".0%"),
+                alt.Tooltip("Weighted Contribution:Q", format=".2f"),
+            ],
+        )
+        .properties(height=360)
+    )
+    st.altair_chart(chart, width="stretch")
+
+
+def render_availability_bar_chart(dataframe, category_column: str, value_column: str) -> None:
+    if dataframe.empty:
+        st.info("No data available.")
+        return
+
+    chart = (
+        alt.Chart(dataframe)
+        .mark_bar()
+        .encode(
+            x=alt.X(f"{value_column}:Q", title=value_column),
+            y=alt.Y(f"{category_column}:N", sort="-x", title=None),
+            tooltip=[
+                alt.Tooltip(f"{category_column}:N"),
+                alt.Tooltip(f"{value_column}:Q", format=".0f"),
+            ],
+        )
+        .properties(height=max(220, 32 * len(dataframe)))
+    )
+    st.altair_chart(chart, width="stretch")
+
+
 def render_comparison_tab(dashboard_view: dict, best_plan_id: int, best_plan_view: dict) -> None:
     st.subheader("Options Ranking")
     st.dataframe(
@@ -124,7 +189,7 @@ def render_comparison_tab(dashboard_view: dict, best_plan_id: int, best_plan_vie
         hide_index=True,
     )
 
-    st.bar_chart(dashboard_view["chart_df"], width="stretch")
+    render_score_contribution_chart(dashboard_view["chart_df"], dashboard_view["score_weights"])
 
     st.subheader("Quick Read")
     st.write(
@@ -132,6 +197,74 @@ def render_comparison_tab(dashboard_view: dict, best_plan_id: int, best_plan_vie
         f"Its strongest area is coverage ({best_plan_view['score_metrics']['coverage_score']['score_display']}) "
         f"and it maintains an average streak of {best_plan_view['other_metrics']['average_streak']} consecutive weeks."
         )
+
+
+def render_availability_tab(availability_profile: dict | None) -> None:
+    st.subheader("Availability Profile")
+
+    if availability_profile is None:
+        st.info("No cleaned availability data found. Run the pipeline first to generate `data/interim/availability_clean.csv`.")
+        return
+
+    availability_summary = availability_profile["availability_summary"]
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("Members", availability_summary["total_members"])
+    metric_cols[1].metric("Directors", availability_summary["directors"])
+    metric_cols[2].metric("Represented", availability_summary["represented_members"])
+    metric_cols[3].metric("Limited", availability_summary["limited_members"])
+
+    alerts = availability_profile["alerts"]
+    if alerts:
+        st.warning("\n".join(f"- {alert}" for alert in alerts))
+    else:
+        st.success("No availability warnings found.")
+
+    instrument_col, main_instrument_col = st.columns(2)
+    with instrument_col:
+        st.subheader("Instrument Coverage")
+        render_availability_bar_chart(
+            availability_profile["instrument_df"],
+            "Instrument",
+            "Available Members",
+        )
+    with main_instrument_col:
+        st.subheader("Main Instrument")
+        render_availability_bar_chart(
+            availability_profile["main_instrument_df"],
+            "Main Instrument",
+            "Members",
+        )
+
+    schedule_col, saturday_col = st.columns(2)
+    with schedule_col:
+        st.subheader("Rehearsal Availability")
+        render_availability_bar_chart(
+            availability_profile["schedule_df"],
+            "Rehearsal Time",
+            "Available Members",
+        )
+    with saturday_col:
+        st.subheader("Saturday Availability")
+        render_availability_bar_chart(
+            availability_profile["saturday_df"],
+            "Saturday",
+            "Available Members",
+        )
+
+    st.subheader("Frequency")
+    st.dataframe(
+        style_dataframe(availability_profile["frequency_df"], AVAILABILITY_TABLE_FORMAT),
+        width="stretch",
+        hide_index=True,
+    )
+
+    st.subheader("Limited Availability")
+    st.dataframe(
+        style_dataframe(availability_profile["limited_df"], AVAILABILITY_TABLE_FORMAT),
+        width="stretch",
+        hide_index=True,
+    )
+
 
 def render_best_plan_tab(best_plan_id: int, best_plan_view: dict) -> None:
     st.subheader(f"Winning Plan: {best_plan_id}")
@@ -199,8 +332,8 @@ def main() -> None:
 
     render_top_metrics(best_plan_view)
 
-    comparison_tab, best_plan_tab, selected_plan_tab = st.tabs(
-        ["Comparison", "Winning Plan", f"Plan {selected_plan_id}"]
+    comparison_tab, best_plan_tab, selected_plan_tab, availability_tab = st.tabs(
+        ["Comparison", "Winning Plan", f"Plan {selected_plan_id}", "Availability"]
     )
 
     with comparison_tab:
@@ -211,6 +344,9 @@ def main() -> None:
 
     with selected_plan_tab:
         render_selected_plan_tab(selected_plan_id, selected_plan_view, delta)
+
+    with availability_tab:
+        render_availability_tab(dashboard_view["availability_profile"])
 
 
 if __name__ == "__main__":

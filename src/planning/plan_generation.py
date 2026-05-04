@@ -9,6 +9,9 @@ import src.planning.filters as filters
 # =========================
 
 def generate_planning_dates(fecha_inicio, n_directores):
+    if fecha_inicio.weekday() != 6:
+        raise ValueError("fecha_inicio must be a Sunday presentation date.")
+
     numero_semanas_pre_corrida = n_directores * 4
     numero_semanas_plan = n_directores * 2
     numero_semanas_total = numero_semanas_pre_corrida + numero_semanas_plan
@@ -195,7 +198,7 @@ def plans_generator(df, fecha_inicio, max_options=5, n_iter=10_000):
     n_directores = len(directores)
 
     if n_directores == 0:
-        return []
+        return {}
     
     # === GENERAR FECHAS ===
 

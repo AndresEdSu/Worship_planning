@@ -23,6 +23,18 @@ SCORE_LABELS = {
     "rest_score": "Rest",
     "resilience_score": "Resilience",
 }
+BASE_SCORE_LABELS = {
+    "coverage_score": "Coverage",
+    "equity_score": "Equity",
+    "rest_score": "Rest",
+    "resilience_score": "Resilience",
+}
+SCORE_WEIGHT_KEYS = {
+    "coverage_score": "coverage",
+    "equity_score": "equity",
+    "rest_score": "rest",
+    "resilience_score": "resilience",
+}
 
 
 def format_score(value: float) -> str:
@@ -82,14 +94,19 @@ def build_summary_display_df(summary_df: pd.DataFrame) -> pd.DataFrame:
     ].rename(columns=SUMMARY_COLUMN_LABELS)
 
 
-def build_chart_df(summary_df: pd.DataFrame) -> pd.DataFrame:
+def build_chart_df(
+    summary_df: pd.DataFrame,
+    weights: dict[str, float] | None = None,
+) -> pd.DataFrame:
     if summary_df.empty:
         return summary_df.copy()
 
-    chart_df = summary_df.set_index(summary_df["plan_id"].astype(str))[
-        ["overall_score", "coverage_score", "equity_score", "rest_score", "resilience_score"]
-    ].copy()
-    chart_df.columns = [SCORE_LABELS[column] for column in chart_df.columns]
+    weights = weights or DEFAULT_WEIGHTS
+    chart_df = pd.DataFrame(index=summary_df["plan_id"].astype(str))
+    chart_df.index.name = "Plan"
+    for score_key, label in BASE_SCORE_LABELS.items():
+        weight_key = SCORE_WEIGHT_KEYS[score_key]
+        chart_df[label] = summary_df[score_key].values * weights[weight_key]
     return chart_df
 
 
@@ -162,8 +179,9 @@ def build_dashboard_view(
 
     return {
         "best_plan_id": best_plan_id,
-        "available_plan_ids": summary_df["plan_id"].astype(int).tolist(),
+        "available_plan_ids": summary_df["plan_id"].astype(int).tolist() if "plan_id" in summary_df else [],
         "summary_display_df": build_summary_display_df(summary_df),
-        "chart_df": build_chart_df(summary_df),
+        "chart_df": build_chart_df(summary_df, weights),
+        "score_weights": weights,
         "plan_views": plan_views,
     }
