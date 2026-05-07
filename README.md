@@ -35,7 +35,7 @@ Worship_planning/
 |   `-- streamlit_app.py
 |-- data/
 |   |-- raw/
-|   |   `-- worship_availability_demo.xlsx
+|   |   `-- worship_availability_demo_en.xlsx
 |   |-- interim/
 |   `-- processed/
 |-- outputs/
@@ -63,9 +63,9 @@ Worship_planning/
 
 The repository is organized around lowercase directory names.
 
-- `data/raw/worship_availability_demo.xlsx` is the demo input file.
+- `data/raw/worship_availability_demo_en.xlsx` is the default demo input file.
 - `data/raw/worship_availability.xlsx` is treated as local/private data and ignored by Git.
-- `data/interim/`, `data/processed/`, and `outputs/` contain generated artifacts and are ignored by Git.
+- `data/interim/`, `data/processed/`, and `outputs/` contain generated artifacts that can be refreshed by the pipeline.
 - `notebooks/` is currently treated as local exploratory work and ignored by Git.
 
 ## Setup
@@ -81,16 +81,17 @@ pip install -r requirements.txt
 Generate cleaned data, planning options, evaluation scores, and the HTML infographic:
 
 ```bash
-python -m src.pipeline.run_pipeline --fecha-inicio 2026-01-04
+python -m src.pipeline.run_pipeline --start-date 2026-01-04
 ```
 
-If `--fecha-inicio` is omitted, the pipeline uses its default Sunday start date.
-The start date must be a Sunday presentation date.
+If `--start-date` is omitted, the pipeline uses its default Sunday start date.
+The start date must be a Sunday service date.
+Use `--raw-path` to run the pipeline against another availability workbook.
 
 The pipeline reads from:
 
 ```text
-data/raw/worship_availability_demo.xlsx
+data/raw/worship_availability_demo_en.xlsx
 ```
 
 and writes generated outputs under:

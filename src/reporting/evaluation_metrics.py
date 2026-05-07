@@ -17,7 +17,7 @@ def extract_names(cell):
     """
     Extract name from a cell value.
     
-    Returns the name if it's a valid string (not empty, not 'Invitado'),
+    Returns the name if it's a valid string (not empty, not 'Guest'),
     otherwise returns None.
     
     Parameters
@@ -35,7 +35,7 @@ def extract_names(cell):
     if not isinstance(cell, str):
         return None
     name = cell.strip()
-    if not name or name.lower() == "invitado":
+    if not name or name.lower() in {"guest", "invitado"}:
         return None
     return name
 
@@ -68,7 +68,9 @@ def normalize_plan_to_long(df, date_col, role_cols):
             if person:
                 records.append({
                     "date": date,
-                    "role": 'Coro' if "corista" in role.lower() else role,
+                    "role": "Vocalists"
+                    if "vocalist" in role.lower() or "corista" in role.lower()
+                    else role,
                     "person": person
                 })
     

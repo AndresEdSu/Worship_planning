@@ -1,24 +1,24 @@
-from argparse import ArgumentParser
+from argparse import SUPPRESS, ArgumentParser
 from datetime import datetime
 
 from src.data.load_data import (
-    PROCESSED_DIR,
     INTERIM_DIR,
-    load_raw_availability_data
-    )
+    PROCESSED_DIR,
+    load_raw_availability_data,
+)
 from src.data.clean_data import clean_availability_data, clean_generated_plan_data
 from src.data.save_data import (
     OUTPUTS_DIR,
-    replace_processed_plans, 
-    save_csv, 
-    save_excel, 
-    save_text
+    replace_processed_plans,
+    save_csv,
+    save_excel,
+    save_text,
 )
-from src.planning.plan_generation import plans_generator
+from src.planning.plan_generation import generate_plans
 from src.reporting.plan_evaluation import (
     DATE_COL,
     DEFAULT_WEIGHTS,
-    evaluate_plan_collection
+    evaluate_plan_collection,
 )
 from src.reporting.export_infographic import build_plan_infographic_html
 
@@ -26,9 +26,19 @@ from src.reporting.export_infographic import build_plan_infographic_html
 def parse_args():
     parser = ArgumentParser(description="Generate worship planning options.")
     parser.add_argument(
-        "--fecha-inicio",
+        "--start-date",
         default="2026-01-04",
-        help="Presentation start date in YYYY-MM-DD format.",
+        help="Sunday service start date in YYYY-MM-DD format.",
+    )
+    parser.add_argument(
+        "--fecha-inicio",
+        dest="start_date",
+        help=SUPPRESS,
+    )
+    parser.add_argument(
+        "--raw-path",
+        default=None,
+        help="Optional path to the raw availability workbook.",
     )
     return parser.parse_args()
 
@@ -42,17 +52,17 @@ def _print_plan_summary(row, prefix: str = "Plan") -> None:
     )
 
 
-def main(fecha_inicio: datetime):
-    df_raw = load_raw_availability_data()
+def main(start_date: datetime, raw_path: str | None = None):
+    df_raw = load_raw_availability_data(raw_path)
     df_clean = clean_availability_data(df_raw)
 
     clean_output_path = INTERIM_DIR / "availability_clean.csv"
     save_csv(df_clean, clean_output_path)
 
-    print(f"Clean data saved to: {clean_output_path}")
+    print(f"Cleaned data saved to: {clean_output_path}")
     print(df_clean.shape)
 
-    valid_plans = plans_generator(df_clean, fecha_inicio, max_options=5, n_iter=10_000)
+    valid_plans = generate_plans(df_clean, start_date, max_options=5, n_iter=10_000)
     cleaned_plans = {
         seed: clean_generated_plan_data(plan)
         for seed, plan in valid_plans.items()
@@ -110,5 +120,5 @@ def main(fecha_inicio: datetime):
 
 if __name__ == "__main__":
     args = parse_args()
-    fecha_inicio = datetime.strptime(args.fecha_inicio, "%Y-%m-%d")
-    main(fecha_inicio)
+    start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
+    main(start_date, raw_path=args.raw_path)

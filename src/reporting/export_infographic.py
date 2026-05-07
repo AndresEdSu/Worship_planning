@@ -3,41 +3,61 @@ from __future__ import annotations
 from dataclasses import dataclass
 from html import escape
 from typing import Iterable
+import re
+import unicodedata
 
 import pandas as pd
 
 
-DATE_REHEARSAL_COL = "Fecha Ensayo (Sabado)"
-DATE_PRESENTATION_COL = "Fecha Presentacion (Domingo)"
-DATE_REHEARSAL_ALIASES = ("Fecha Ensayo (Sabado)", "Fecha Ensayo (Sábado)")
-DATE_PRESENTATION_ALIASES = (
-    "Fecha Presentacion (Domingo)",
-    "Fecha Presentación (Domingo)",
-)
-REHEARSAL_TIME_COL = "Horario Tentativo de Ensayo"
+DATE_REHEARSAL_COL = "Rehearsal Date (Saturday)"
+DATE_PRESENTATION_COL = "Service Date (Sunday)"
+REHEARSAL_TIME_COL = "Tentative Rehearsal Time"
+VOCALISTS_COL = "Vocalists"
+
+COLUMN_ALIASES = {
+    "Fecha Ensayo (Sabado)": DATE_REHEARSAL_COL,
+    "Fecha Ensayo (S\u00e1bado)": DATE_REHEARSAL_COL,
+    "Fecha Presentacion (Domingo)": DATE_PRESENTATION_COL,
+    "Fecha Presentaci\u00f3n (Domingo)": DATE_PRESENTATION_COL,
+    "Horario Tentativo de Ensayo": REHEARSAL_TIME_COL,
+    "Guitarrista": "Guitarist",
+    "Baterista": "Drummer",
+    "Bajista": "Bassist",
+    "Tecladista": "Keyboardist",
+    "Corista_1": "Vocalist_1",
+    "Corista_2": "Vocalist_2",
+    "Coristas": VOCALISTS_COL,
+}
+
 ROLE_SOURCE_COLUMNS = (
     "Director",
-    "Guitarrista",
-    "Baterista",
-    "Bajista",
-    "Tecladista",
-    "Corista_1",
-    "Corista_2",
-    "Coristas",
+    "Guitarist",
+    "Drummer",
+    "Bassist",
+    "Keyboardist",
+    "Vocalist_1",
+    "Vocalist_2",
+    VOCALISTS_COL,
 )
-MONTHS_ES = {
-    1: "Enero",
-    2: "Febrero",
-    3: "Marzo",
-    4: "Abril",
-    5: "Mayo",
-    6: "Junio",
-    7: "Julio",
-    8: "Agosto",
-    9: "Septiembre",
-    10: "Octubre",
-    11: "Noviembre",
-    12: "Diciembre",
+
+MONTHS = {
+    1: "January",
+    2: "February",
+    3: "March",
+    4: "April",
+    5: "May",
+    6: "June",
+    7: "July",
+    8: "August",
+    9: "September",
+    10: "October",
+    11: "November",
+    12: "December",
+}
+
+REHEARSAL_TIME_ALIASES = {
+    "sabado en la manana": "Saturday morning",
+    "sabado en la tarde": "Saturday afternoon",
 }
 
 
@@ -54,13 +74,11 @@ class HtmlTheme:
 
 
 def _canonicalize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    column_map = {}
-    for alias in DATE_REHEARSAL_ALIASES:
-        if alias in df.columns:
-            column_map[alias] = DATE_REHEARSAL_COL
-    for alias in DATE_PRESENTATION_ALIASES:
-        if alias in df.columns:
-            column_map[alias] = DATE_PRESENTATION_COL
+    column_map = {
+        source: target
+        for source, target in COLUMN_ALIASES.items()
+        if source in df.columns and source != target
+    }
     return df.rename(columns=column_map)
 
 
@@ -74,18 +92,30 @@ def _clean_display_text(value: object) -> str | None:
     return " ".join(str(value).strip().split())
 
 
-def _combine_choirs(row: pd.Series) -> str | None:
-    if "Coristas" in row.index and not _is_missing(row.get("Coristas")):
-        return _clean_display_text(row.get("Coristas"))
+def _normalize_lookup_key(value: object) -> str:
+    text = unicodedata.normalize("NFKD", str(value).strip().lower())
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    return re.sub(r"\s+", " ", text)
 
-    choir_values: list[str] = []
-    for column in ("Corista_1", "Corista_2"):
+
+def _translate_rehearsal_time(value: object) -> object:
+    if _is_missing(value):
+        return value
+    return REHEARSAL_TIME_ALIASES.get(_normalize_lookup_key(value), value)
+
+
+def _combine_vocalists(row: pd.Series) -> str | None:
+    if VOCALISTS_COL in row.index and not _is_missing(row.get(VOCALISTS_COL)):
+        return _clean_display_text(row.get(VOCALISTS_COL))
+
+    vocalist_values: list[str] = []
+    for column in ("Vocalist_1", "Vocalist_2"):
         value = _clean_display_text(row.get(column))
-        if value and value not in choir_values:
-            choir_values.append(value)
-    if not choir_values:
+        if value and value not in vocalist_values:
+            vocalist_values.append(value)
+    if not vocalist_values:
         return None
-    return ", ".join(choir_values)
+    return ", ".join(vocalist_values)
 
 
 def prepare_infographic_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -96,10 +126,10 @@ def prepare_infographic_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         DATE_PRESENTATION_COL,
         REHEARSAL_TIME_COL,
         "Director",
-        "Guitarrista",
-        "Baterista",
-        "Bajista",
-        "Tecladista",
+        "Guitarist",
+        "Drummer",
+        "Bassist",
+        "Keyboardist",
     }
     missing_columns = sorted(required_columns - set(plan.columns))
     if missing_columns:
@@ -109,23 +139,25 @@ def prepare_infographic_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if plan[DATE_REHEARSAL_COL].isna().any() or plan[DATE_PRESENTATION_COL].isna().any():
         raise ValueError("Some infographic dates are missing or invalid.")
 
-    plan["Coristas"] = plan.apply(_combine_choirs, axis=1)
-    
+    plan[REHEARSAL_TIME_COL] = plan[REHEARSAL_TIME_COL].apply(_translate_rehearsal_time)
+    plan[VOCALISTS_COL] = plan.apply(_combine_vocalists, axis=1)
+
     return plan
 
-def format_date_es(value: pd.Timestamp) -> str:
+
+def format_date(value: pd.Timestamp) -> str:
     date_value = pd.Timestamp(value)
-    return f"{date_value.day} {MONTHS_ES[date_value.month]} {date_value.year}"
+    return f"{MONTHS[date_value.month]} {date_value.day}, {date_value.year}"
 
 
 def _role_pairs(row: pd.Series) -> list[tuple[str, str]]:
     pairs = [
         ("Director", row.get("Director")),
-        ("Guitarra", row.get("Guitarrista")),
-        ("Batería", row.get("Baterista")),
-        ("Bajo", row.get("Bajista")),
-        ("Teclado", row.get("Tecladista")),
-        ("Coristas", row.get("Coristas")),
+        ("Guitar", row.get("Guitarist")),
+        ("Drums", row.get("Drummer")),
+        ("Bass", row.get("Bassist")),
+        ("Keyboard", row.get("Keyboardist")),
+        ("Vocalists", row.get(VOCALISTS_COL)),
     ]
     return [(label, str(value)) for label, value in pairs if not _is_missing(value)]
 
@@ -168,13 +200,13 @@ def _render_card(row: pd.Series) -> str:
     <article class="plan-card">
       <div class="card-dates">
         <div class="date-block">
-          <div class="date-label">Ensayo</div>
-          <div class="date-value">{escape(format_date_es(row[DATE_REHEARSAL_COL]))}</div>
+          <div class="date-label">Rehearsal</div>
+          <div class="date-value">{escape(format_date(row[DATE_REHEARSAL_COL]))}</div>
           {rehearsal_time_html}
         </div>
         <div class="date-block">
-          <div class="date-label">Presentación</div>
-          <div class="date-value">{escape(format_date_es(row[DATE_PRESENTATION_COL]))}</div>
+          <div class="date-label">Service</div>
+          <div class="date-value">{escape(format_date(row[DATE_PRESENTATION_COL]))}</div>
         </div>
       </div>
       <div class="card-roles">
@@ -195,8 +227,8 @@ def render_infographic_html(
     plan_rows = [plan_df.iloc[index] for index in range(len(plan_df))]
     pages = _chunk_rows(plan_rows, cards_per_page)
     subtitle = (
-        f"{format_date_es(plan_df[DATE_PRESENTATION_COL].min())} a "
-        f"{format_date_es(plan_df[DATE_PRESENTATION_COL].max())}"
+        f"{format_date(plan_df[DATE_PRESENTATION_COL].min())} to "
+        f"{format_date(plan_df[DATE_PRESENTATION_COL].max())}"
     )
 
     page_sections = []
@@ -211,7 +243,7 @@ def render_infographic_html(
                   <h1>{escape(title)}</h1>
                   <p>{escape(subtitle)}</p>
                 </div>
-                <div class="page-number">Página {page_index}/{total_pages}</div>
+                <div class="page-number">Page {page_index}/{total_pages}</div>
               </header>
               <div class="page-body">
                 {cards_html}
@@ -423,7 +455,7 @@ def render_infographic_html(
     """
 
     return f"""<!DOCTYPE html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -444,7 +476,7 @@ def render_infographic_html(
 def build_plan_infographic_html(
     plan_df: pd.DataFrame,
     *,
-    title: str = "Planificación de\nMinisterio de Adoración Ágape",
+    title: str = "Agape Worship Ministry\nPlanning",
     cards_per_page: int = 4,
     theme: HtmlTheme | None = None,
 ) -> str:

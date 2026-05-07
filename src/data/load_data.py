@@ -12,7 +12,7 @@ RAW_DIR = DATA_DIR / "raw"
 INTERIM_DIR = DATA_DIR / "interim"
 PROCESSED_DIR = DATA_DIR / "processed"
 
-DEFAULT_RAW_FILE = RAW_DIR / "worship_availability_demo.xlsx"
+DEFAULT_RAW_FILE = RAW_DIR / "worship_availability_demo_en.xlsx"
 DEFAULT_INTERIM_FILE = INTERIM_DIR / "availability_clean.csv"
 PLAN_FILE_PATTERN = re.compile(r"planning_option_(\d+)\.csv$")
 

@@ -53,6 +53,7 @@ Thumbs.db
 # Local or generated data
 # -------------------------
 data/raw/worship_availability.xlsx
+data/raw/worship_availability_demo_es.xlsx
 **/final_worship_planning_20260201.xlsx
 
 # -------------------------

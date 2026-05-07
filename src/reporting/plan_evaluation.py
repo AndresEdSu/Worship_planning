@@ -3,19 +3,23 @@ from __future__ import annotations
 import pandas as pd
 
 from src.reporting.evaluation_metrics import evaluate_plan
+from src.reporting.export_infographic import (
+    COLUMN_ALIASES,
+    DATE_PRESENTATION_COL,
+)
 
 
-DATE_COL = "Fecha Presentación (Domingo)"
+DATE_COL = DATE_PRESENTATION_COL
 ROLE_COLS = [
     "Director",
-    "Guitarrista",
-    "Baterista",
-    "Bajista",
-    "Tecladista",
-    "Corista_1",
-    "Corista_2",
+    "Guitarist",
+    "Drummer",
+    "Bassist",
+    "Keyboardist",
+    "Vocalist_1",
+    "Vocalist_2",
 ]
-CRITICAL_ROLES = ["Director", "Guitarrista", "Baterista", "Bajista", "Tecladista"]
+CRITICAL_ROLES = ["Director", "Guitarist", "Drummer", "Bassist", "Keyboardist"]
 DEFAULT_WEIGHTS = {
     "coverage": 0.35,
     "equity": 0.30,
@@ -25,12 +29,11 @@ DEFAULT_WEIGHTS = {
 
 
 def coerce_plan_datetime(plan: pd.DataFrame) -> pd.DataFrame:
-    normalized = plan.copy()
+    normalized = plan.rename(columns=COLUMN_ALIASES).copy()
     if DATE_COL in normalized.columns:
         normalized[DATE_COL] = pd.to_datetime(normalized[DATE_COL])
         normalized = normalized.sort_values(DATE_COL).reset_index(drop=True)
     return normalized
-
 
 
 def _coerce_plan_columns(plans: dict[int, pd.DataFrame]) -> dict[int, pd.DataFrame]:

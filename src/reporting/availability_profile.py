@@ -4,22 +4,22 @@ import pandas as pd
 
 
 INSTRUMENT_FLAG_LABELS = {
-    "voz": "Voice",
-    "guitarra": "Guitar",
-    "bajo": "Bass",
-    "bateria": "Drums",
-    "teclado": "Keyboard",
+    "voice": "Voice",
+    "guitar": "Guitar",
+    "bass": "Bass",
+    "drums": "Drums",
+    "keyboard": "Keyboard",
 }
 SCHEDULE_LABELS = {
-    "sabado_am": "Saturday AM",
-    "sabado_pm": "Saturday PM",
+    "saturday_am": "Saturday AM",
+    "saturday_pm": "Saturday PM",
 }
 SATURDAY_LABELS = {
-    "sabado_1": "First Saturday",
-    "sabado_2": "Second Saturday",
-    "sabado_3": "Third Saturday",
-    "sabado_4": "Fourth Saturday",
-    "sabado_5": "Fifth Saturday",
+    "saturday_1": "First Saturday",
+    "saturday_2": "Second Saturday",
+    "saturday_3": "Third Saturday",
+    "saturday_4": "Fourth Saturday",
+    "saturday_5": "Fifth Saturday",
 }
 FREQUENCY_LABELS = {
     2: "Every 2 weeks",
@@ -63,11 +63,11 @@ def build_instrument_profile_df(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_main_instrument_df(df: pd.DataFrame) -> pd.DataFrame:
-    if "instrumento_principal" not in df.columns:
+    if "primary_instrument" not in df.columns:
         return pd.DataFrame(columns=["Main Instrument", "Members"])
 
     counts = (
-        df["instrumento_principal"]
+        df["primary_instrument"]
         .fillna("missing")
         .value_counts()
         .rename_axis("Main Instrument")
@@ -78,10 +78,10 @@ def build_main_instrument_df(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_frequency_df(df: pd.DataFrame) -> pd.DataFrame:
-    if "frecuencia" not in df.columns:
+    if "frequency" not in df.columns:
         return pd.DataFrame(columns=["Frequency", "Members"])
 
-    frequency = pd.to_numeric(df["frecuencia"], errors="coerce")
+    frequency = pd.to_numeric(df["frequency"], errors="coerce")
     counts = frequency.value_counts(dropna=False).sort_index().rename_axis("Frequency").reset_index(name="Members")
     counts["Frequency"] = counts["Frequency"].map(FREQUENCY_LABELS).fillna(counts["Frequency"].astype(str))
     return counts
@@ -100,18 +100,18 @@ def build_limited_availability_df(df: pd.DataFrame) -> pd.DataFrame:
     ].copy()
 
     display_columns = [
-        "nombre",
-        "instrumento_principal",
-        "frecuencia",
+        "name",
+        "primary_instrument",
+        "frequency",
         "saturday_options",
         "schedule_options",
     ]
     available_columns = [column for column in display_columns if column in limited.columns]
     limited = limited[available_columns].rename(
         columns={
-            "nombre": "Name",
-            "instrumento_principal": "Main Instrument",
-            "frecuencia": "Frequency",
+            "name": "Name",
+            "primary_instrument": "Main Instrument",
+            "frequency": "Frequency",
             "saturday_options": "Saturday Options",
             "schedule_options": "Rehearsal Time Options",
         }
@@ -133,7 +133,7 @@ def build_availability_alerts(
     if director_count < 2:
         alerts.append(f"Only {director_count} director(s) are available.")
 
-    for column, label in {"guitarra": "guitarists", "bateria": "drummers"}.items():
+    for column, label in {"guitar": "guitarists", "drums": "drummers"}.items():
         count = _sum_binary_column(df, column)
         if count < 2:
             alerts.append(f"Only {count} {label} are available.")
@@ -154,7 +154,7 @@ def build_availability_alerts(
 
 def build_availability_profile(df: pd.DataFrame) -> dict:
     limited_df = build_limited_availability_df(df)
-    represented_count = int(df["representante"].notna().sum()) if "representante" in df.columns else 0
+    represented_count = int(df["representative"].notna().sum()) if "representative" in df.columns else 0
 
     return {
         "availability_summary": {

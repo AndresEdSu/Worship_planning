@@ -1,18 +1,18 @@
-correo,nombre,nombre_norm,representante,director,instrumento_principal,voz,guitarra,bajo,bateria,teclado,sabado_am,sabado_pm,sabado_1,sabado_2,sabado_3,sabado_4,sabado_5,frecuencia,sugerencias
-daniel.herrera@example.com,Daniel Herrera,daniel herrera,,1,guitarra,1,1,1,0,0,1,1,1,1,1,1,1,2,
-sof.a.medina@mail.example.com,Sofía Medina,sofia medina,,1,guitarra,1,1,0,0,0,1,1,1,1,0,1,1,3,
-mateo.santos@example.com,Mateo Santos,mateo santos,,0,voz,1,0,0,0,0,1,1,1,1,1,1,1,3,
-valentina.fuentes@mail.example.com,Valentina Fuentes,valentina fuentes,,1,voz,1,1,0,0,0,1,0,0,1,0,1,1,4,Continuar promoviendo en la iglesia la importancia de la capacitación para generar la incorporación de otros hermanos en el equipo de alabanza. 
-samuel.molina@example.com,Samuel Molina,samuel molina,,1,bajo,1,1,1,0,0,0,1,1,1,1,1,1,2,"Todo bien, sigamos!"
-camila.miranda@mail.example.com,Camila Miranda,camila miranda,lucas miranda,0,guitarra,1,1,1,0,0,1,1,1,1,1,1,1,2,
-isabella.palacios@example.com,Isabella Palacios,isabella palacios,,1,voz,1,0,0,0,0,1,0,1,1,1,0,1,2,Planificación mensual 
-gabriel.romero@mail.example.com,Gabriel Romero,gabriel romero,lucia rojas,1,teclado,1,0,0,0,1,0,1,1,1,1,1,1,4,
-nicol.s.mendoza@example.com,Nicolás Mendoza,nicolas mendoza,,1,voz,1,0,0,1,0,1,0,1,1,1,1,1,2,Más compromiso y más dedicación por qué es adoración al señor
-luc.a.rojas@mail.example.com,Lucía Rojas,lucia rojas,,1,voz,1,0,0,0,0,0,1,1,1,1,1,1,3,
-mariana.campos@example.com,Mariana Campos,mariana campos,,0,bateria,0,1,1,1,0,0,1,1,1,1,1,1,2,Ánimo 
-tom.s.ortega@mail.example.com,Tomás Ortega,tomas ortega,,1,bateria,1,0,1,1,0,1,1,1,1,1,0,1,2,Compromiso y puntualidad 
-mateo.cabrera@example.com,Mateo Cabrera,mateo cabrera,,1,bajo,1,1,1,0,0,1,1,1,1,1,1,1,2,
-valentina.salazar@mail.example.com,Valentina Salazar,valentina salazar,,1,teclado,1,1,0,0,1,1,0,1,1,0,1,1,3,
-samuel.ortega@example.com,Samuel Ortega,samuel ortega,tomas ortega,1,teclado,1,0,0,0,1,0,1,1,1,1,0,1,2,
-lucia.mendoza@mail.example.com,Lucía Mendoza,lucia mendoza,,0,bajo,0,0,1,1,0,0,1,1,0,1,1,1,4,
-bruno.vega@example.com,Bruno Vega,bruno vega,,1,bateria,1,0,1,1,0,1,0,1,1,1,1,1,2,
+email,name,name_norm,representative,director,primary_instrument,voice,guitar,bass,drums,keyboard,saturday_am,saturday_pm,saturday_1,saturday_2,saturday_3,saturday_4,saturday_5,frequency,suggestions
+daniel.herrera@example.com,Daniel Herrera,daniel herrera,,1,guitar,1,1,1,0,0,1,1,1,1,1,1,1,2,
+sophia.carter@example.com,Sophia Carter,sophia carter,,1,guitar,1,1,0,0,0,1,1,1,1,0,1,1,3,
+matthew.turner@example.com,Matthew Turner,matthew turner,,0,voice,1,0,0,0,0,1,1,1,1,1,1,1,3,
+valentina.fuentes@example.com,Valentina Fuentes,valentina fuentes,,1,voice,1,1,0,0,0,1,1,0,1,0,1,1,4,"Continue promoting within the church the importance of training, in order to facilitate the incorporation of other brothers and sisters into the praise team."
+samuel.molina@example.com,Samuel Molina,samuel molina,,1,bass,1,1,1,0,0,0,1,1,1,1,1,1,2,All good—let's keep going!
+camila.miranda@example.com,Camila Miranda,camila miranda,luke miranda,0,guitar,1,1,1,0,0,1,1,1,1,1,1,1,2,
+isabella.palacios@example.com,Isabella Palacios,isabella palacios,,1,voice,1,0,0,0,0,1,0,1,1,1,0,1,2,Monthly Planning
+gabriel.romero@example.com,Gabriel Romero,gabriel romero,lucy bennett,1,keyboard,1,0,0,0,1,0,1,1,1,1,1,1,4,
+nicholas.reed@example.com,Nicholas Reed,nicholas reed,,1,voice,1,0,0,1,0,1,0,1,1,1,1,1,2,"Greater commitment and dedication, for this is worship to the Lord."
+lucy.bennett@example.com,Lucy Bennett,lucy bennett,,1,voice,1,0,0,0,0,0,1,1,1,1,1,1,3,
+mariana.campos@example.com,Mariana Campos,mariana campos,,0,drums,0,1,1,1,0,0,1,1,1,1,1,1,2,Keep it up!
+thomas.walker@example.com,Thomas Walker,thomas walker,,1,drums,1,0,1,1,0,1,1,1,1,1,0,1,2,Commitment and Punctuality
+matthew.brooks@example.com,Matthew Brooks,matthew brooks,,1,bass,1,1,1,0,0,1,1,1,1,1,1,1,2,
+valentina.salazar@example.com,Valentina Salazar,valentina salazar,,1,keyboard,1,1,0,0,1,1,0,1,1,0,1,1,3,
+samuel.ortega@example.com,Samuel Ortega,samuel ortega,thomas walker,1,keyboard,1,0,0,0,1,0,1,1,1,1,0,1,2,
+lucia.mendoza@example.com,Lucia Mendoza,lucia mendoza,,0,bass,0,0,1,1,0,0,1,1,0,1,1,1,4,
+bruno.vega@example.com,Bruno Vega,bruno vega,,1,drums,1,0,1,1,0,1,0,1,1,1,1,1,2,
