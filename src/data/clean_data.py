@@ -8,30 +8,19 @@ import pandas as pd
 
 COLUMN_RENAME_MAP = {
     "marca_temporal": "timestamp",
-    "timestamp": "timestamp",
     "direccion_de_correo_electronico": "email",
-    "email": "email",
     "nombre_y_apellido": "name",
     "first_and_last_name": "name",
     "nombre": "name",
-    "name": "name",
     "representante": "representative",
-    "representative": "representative",
     "instrumento": "instrument",
-    "instrument": "instrument",
     "instrumento_principal": "primary_instrument",
-    "primary_instrument": "primary_instrument",
     "director_voz_principal": "director",
     "director_lead_vocals": "director",
-    "director": "director",
     "horario_de_ensayo": "rehearsal_schedule",
-    "rehearsal_schedule": "rehearsal_schedule",
     "frecuencia": "frequency",
-    "frequency": "frequency",
     "dias_ocupados": "unavailable_days",
-    "unavailable_days": "unavailable_days",
     "sugerencias": "suggestions",
-    "suggestions": "suggestions",
 }
 
 INSTRUMENT_ALIASES = {
@@ -74,26 +63,6 @@ FREQUENCY_MAP = {
 }
 
 TRUE_VALUES = {"yes", "y", "true", "si", "s", "1"}
-
-PLAN_COLUMN_RENAME_MAP = {
-    "Fecha Ensayo (Sabado)": "Rehearsal Date (Saturday)",
-    "Fecha Ensayo (S\u00e1bado)": "Rehearsal Date (Saturday)",
-    "Fecha Presentacion (Domingo)": "Service Date (Sunday)",
-    "Fecha Presentaci\u00f3n (Domingo)": "Service Date (Sunday)",
-    "Horario Tentativo de Ensayo": "Tentative Rehearsal Time",
-    "Guitarrista": "Guitarist",
-    "Baterista": "Drummer",
-    "Bajista": "Bassist",
-    "Tecladista": "Keyboardist",
-    "Corista_1": "Vocalist_1",
-    "Corista_2": "Vocalist_2",
-}
-
-REHEARSAL_TIME_RENAME_MAP = {
-    "sabado en la manana": "Saturday morning",
-    "sabado en la tarde": "Saturday afternoon",
-}
-
 
 def normalize_column_name(col):
     col = str(col).strip().lower()
@@ -222,14 +191,6 @@ def map_frequency(df):
     return df
 
 
-def translate_rehearsal_time(value):
-    if pd.isna(value):
-        return value
-
-    normalized_value = lower_normalizer_text(value)
-    return REHEARSAL_TIME_RENAME_MAP.get(normalized_value, value)
-
-
 def adjust_represented_availability(df):
     df = df.copy()
     availability_cols = [
@@ -338,7 +299,7 @@ def clean_availability_data(df):
 
 
 def clean_generated_plan_data(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy().rename(columns=PLAN_COLUMN_RENAME_MAP)
+    df = df.copy()
 
     date_columns = ["Rehearsal Date (Saturday)", "Service Date (Sunday)"]
     role_columns = [
@@ -362,10 +323,6 @@ def clean_generated_plan_data(df: pd.DataFrame) -> pd.DataFrame:
         df = df.sort_values(available_date_columns).reset_index(drop=True)
 
     df = normalize_text_columns(df, text_columns, neutral_normalizer_text)
-    if "Tentative Rehearsal Time" in df.columns:
-        df["Tentative Rehearsal Time"] = df["Tentative Rehearsal Time"].apply(
-            translate_rehearsal_time
-        )
 
     available_columns = [column for column in ordered_columns if column in df.columns]
     remaining_columns = [column for column in df.columns if column not in available_columns]

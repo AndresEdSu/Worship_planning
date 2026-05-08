@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from html import escape
 from typing import Iterable
-import re
-import unicodedata
 
 import pandas as pd
 
@@ -55,12 +53,6 @@ MONTHS = {
     12: "December",
 }
 
-REHEARSAL_TIME_ALIASES = {
-    "sabado en la manana": "Saturday morning",
-    "sabado en la tarde": "Saturday afternoon",
-}
-
-
 @dataclass(frozen=True)
 class HtmlTheme:
     page_bg: str = "#f4f6f8"
@@ -90,18 +82,6 @@ def _clean_display_text(value: object) -> str | None:
     if _is_missing(value):
         return None
     return " ".join(str(value).strip().split())
-
-
-def _normalize_lookup_key(value: object) -> str:
-    text = unicodedata.normalize("NFKD", str(value).strip().lower())
-    text = "".join(char for char in text if not unicodedata.combining(char))
-    return re.sub(r"\s+", " ", text)
-
-
-def _translate_rehearsal_time(value: object) -> object:
-    if _is_missing(value):
-        return value
-    return REHEARSAL_TIME_ALIASES.get(_normalize_lookup_key(value), value)
 
 
 def _combine_vocalists(row: pd.Series) -> str | None:
@@ -139,7 +119,6 @@ def prepare_infographic_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if plan[DATE_REHEARSAL_COL].isna().any() or plan[DATE_PRESENTATION_COL].isna().any():
         raise ValueError("Some infographic dates are missing or invalid.")
 
-    plan[REHEARSAL_TIME_COL] = plan[REHEARSAL_TIME_COL].apply(_translate_rehearsal_time)
     plan[VOCALISTS_COL] = plan.apply(_combine_vocalists, axis=1)
 
     return plan

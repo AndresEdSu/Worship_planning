@@ -1,4 +1,4 @@
-from argparse import SUPPRESS, ArgumentParser
+from argparse import ArgumentParser
 from datetime import datetime
 
 from src.data.load_data import (
@@ -31,25 +31,11 @@ def parse_args():
         help="Sunday service start date in YYYY-MM-DD format.",
     )
     parser.add_argument(
-        "--fecha-inicio",
-        dest="start_date",
-        help=SUPPRESS,
-    )
-    parser.add_argument(
         "--raw-path",
         default=None,
         help="Optional path to the raw availability workbook.",
     )
     return parser.parse_args()
-
-
-def _print_plan_summary(row, prefix: str = "Plan") -> None:
-    print(
-        f"{prefix} {row.plan_id} details: {int(row.num_dates)} dates, "
-        f"{row.participation_cv:.3f} CV, "
-        f"{row.avg_critical_top_share:.3f} avg top share, "
-        f"{row.avg_max_consecutive_weeks:.2f} avg max consecutive"
-    )
 
 
 def main(start_date: datetime, raw_path: str | None = None):
@@ -88,7 +74,12 @@ def main(start_date: datetime, raw_path: str | None = None):
                 summary_df.loc[summary_df["plan_id"] == best_plan_id].itertuples(index=False)
             )
             print(f"\nBest plan: {best_row.plan_id} with overall score {best_row.overall_score:.2f}")
-            _print_plan_summary(best_row, prefix="Best plan")
+            print(
+                f"Best plan {best_row.plan_id} details: {int(best_row.num_dates)} dates, "
+                f"{best_row.participation_cv:.3f} CV, "
+                f"{best_row.avg_critical_top_share:.3f} avg top share, "
+                f"{best_row.avg_max_consecutive_weeks:.2f} avg max consecutive"
+            )
 
             # Save Worship planning data (best plan data)
             best_plan = cleaned_plans[best_plan_id]
