@@ -1,0 +1,42 @@
+from __future__ import annotations
+
+
+REHEARSAL_DATE_COL = "Rehearsal Date (Saturday)"
+SERVICE_DATE_COL = "Service Date (Sunday)"
+REHEARSAL_TIME_COL = "Tentative Rehearsal Time"
+
+DIRECTOR_COL = "Director"
+GUITARIST_COL = "Guitarist"
+DRUMMER_COL = "Drummer"
+BASSIST_COL = "Bassist"
+KEYBOARDIST_COL = "Keyboardist"
+VOCALIST_1_COL = "Vocalist_1"
+VOCALIST_2_COL = "Vocalist_2"
+VOCALISTS_COL = "Vocalists"
+
+PLAN_DATE_COLS = (
+    REHEARSAL_DATE_COL,
+    SERVICE_DATE_COL,
+)
+PLAN_ROLE_COLS = (
+    DIRECTOR_COL,
+    GUITARIST_COL,
+    DRUMMER_COL,
+    BASSIST_COL,
+    KEYBOARDIST_COL,
+    VOCALIST_1_COL,
+    VOCALIST_2_COL,
+)
+CRITICAL_ROLE_COLS = (
+    DIRECTOR_COL,
+    GUITARIST_COL,
+    DRUMMER_COL,
+    BASSIST_COL,
+    KEYBOARDIST_COL,
+)
+REQUIRED_PLAN_ROLE_COLS = (
+    DIRECTOR_COL,
+    GUITARIST_COL,
+    DRUMMER_COL,
+    VOCALIST_1_COL,
+)

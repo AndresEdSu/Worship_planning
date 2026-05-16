@@ -2,24 +2,17 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.reporting.evaluation_metrics import evaluate_plan
-from src.reporting.export_infographic import (
-    COLUMN_ALIASES,
-    DATE_PRESENTATION_COL,
+from src.planning.schema import (
+    CRITICAL_ROLE_COLS,
+    PLAN_ROLE_COLS,
+    SERVICE_DATE_COL,
 )
+from src.reporting.evaluation_metrics import evaluate_plan
 
 
-DATE_COL = DATE_PRESENTATION_COL
-ROLE_COLS = [
-    "Director",
-    "Guitarist",
-    "Drummer",
-    "Bassist",
-    "Keyboardist",
-    "Vocalist_1",
-    "Vocalist_2",
-]
-CRITICAL_ROLES = ["Director", "Guitarist", "Drummer", "Bassist", "Keyboardist"]
+DATE_COL = SERVICE_DATE_COL
+ROLE_COLS = list(PLAN_ROLE_COLS)
+CRITICAL_ROLES = list(CRITICAL_ROLE_COLS)
 DEFAULT_WEIGHTS = {
     "coverage": 0.35,
     "equity": 0.30,
@@ -29,19 +22,19 @@ DEFAULT_WEIGHTS = {
 
 
 def coerce_plan_datetime(plan: pd.DataFrame) -> pd.DataFrame:
-    normalized = plan.rename(columns=COLUMN_ALIASES).copy()
+    normalized = plan.copy()
     if DATE_COL in normalized.columns:
         normalized[DATE_COL] = pd.to_datetime(normalized[DATE_COL])
         normalized = normalized.sort_values(DATE_COL).reset_index(drop=True)
     return normalized
 
 
-def _coerce_plan_columns(plans: dict[int, pd.DataFrame]) -> dict[int, pd.DataFrame]:
+def _coerce_plan_datetimes(plans: dict[int, pd.DataFrame]) -> dict[int, pd.DataFrame]:
     normalized_plans: dict[int, pd.DataFrame] = {}
 
-    for seed, df in plans.items():
+    for plan_id, df in plans.items():
         plan = coerce_plan_datetime(df)
-        normalized_plans[seed] = plan
+        normalized_plans[plan_id] = plan
 
     return normalized_plans
 
@@ -59,10 +52,10 @@ def evaluate_plan_collection(
     weights = weights or DEFAULT_WEIGHTS
     results: dict[int, dict] = {}
 
-    normalized_plans = _coerce_plan_columns(plans)
+    normalized_plans = _coerce_plan_datetimes(plans)
 
-    for seed, df_plan in normalized_plans.items():
-        results[seed] = evaluate_plan(
+    for plan_id, df_plan in normalized_plans.items():
+        results[plan_id] = evaluate_plan(
             df_plan,
             DATE_COL,
             ROLE_COLS,
@@ -71,10 +64,10 @@ def evaluate_plan_collection(
         )
 
     summary_rows = []
-    for seed, result in results.items():
+    for plan_id, result in results.items():
         summary_rows.append(
             {
-                "plan_id": seed,
+                "plan_id": plan_id,
                 **result["metrics"]["score_metrics"],
                 **result["metrics"]["other_metrics"],
             }

@@ -50,8 +50,8 @@ def main(start_date: datetime, raw_path: str | None = None):
 
     valid_plans = generate_plans(df_clean, start_date, max_options=5, n_iter=10_000)
     cleaned_plans = {
-        seed: clean_generated_plan_data(plan)
-        for seed, plan in valid_plans.items()
+        plan_id: clean_generated_plan_data(plan)
+        for plan_id, plan in valid_plans.items()
     }
 
     if cleaned_plans:

@@ -2,39 +2,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from html import escape
-from typing import Iterable
 
 import pandas as pd
 
-
-DATE_REHEARSAL_COL = "Rehearsal Date (Saturday)"
-DATE_PRESENTATION_COL = "Service Date (Sunday)"
-REHEARSAL_TIME_COL = "Tentative Rehearsal Time"
-VOCALISTS_COL = "Vocalists"
-
-COLUMN_ALIASES = {
-    "Fecha Ensayo (Sabado)": DATE_REHEARSAL_COL,
-    "Fecha Ensayo (S\u00e1bado)": DATE_REHEARSAL_COL,
-    "Fecha Presentacion (Domingo)": DATE_PRESENTATION_COL,
-    "Fecha Presentaci\u00f3n (Domingo)": DATE_PRESENTATION_COL,
-    "Horario Tentativo de Ensayo": REHEARSAL_TIME_COL,
-    "Guitarrista": "Guitarist",
-    "Baterista": "Drummer",
-    "Bajista": "Bassist",
-    "Tecladista": "Keyboardist",
-    "Corista_1": "Vocalist_1",
-    "Corista_2": "Vocalist_2",
-    "Coristas": VOCALISTS_COL,
-}
-
-ROLE_SOURCE_COLUMNS = (
-    "Director",
-    "Guitarist",
-    "Drummer",
-    "Bassist",
-    "Keyboardist",
-    "Vocalist_1",
-    "Vocalist_2",
+from src.planning.schema import (
+    BASSIST_COL,
+    DIRECTOR_COL,
+    DRUMMER_COL,
+    GUITARIST_COL,
+    KEYBOARDIST_COL,
+    REHEARSAL_DATE_COL as DATE_REHEARSAL_COL,
+    REHEARSAL_TIME_COL,
+    SERVICE_DATE_COL as DATE_PRESENTATION_COL,
+    VOCALIST_1_COL,
+    VOCALIST_2_COL,
     VOCALISTS_COL,
 )
 
@@ -65,15 +46,6 @@ class HtmlTheme:
     card_border: str = "#e5e8ee"
 
 
-def _canonicalize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    column_map = {
-        source: target
-        for source, target in COLUMN_ALIASES.items()
-        if source in df.columns and source != target
-    }
-    return df.rename(columns=column_map)
-
-
 def _is_missing(value: object) -> bool:
     return value is None or pd.isna(value) or not str(value).strip()
 
@@ -89,7 +61,7 @@ def _combine_vocalists(row: pd.Series) -> str | None:
         return _clean_display_text(row.get(VOCALISTS_COL))
 
     vocalist_values: list[str] = []
-    for column in ("Vocalist_1", "Vocalist_2"):
+    for column in (VOCALIST_1_COL, VOCALIST_2_COL):
         value = _clean_display_text(row.get(column))
         if value and value not in vocalist_values:
             vocalist_values.append(value)
@@ -99,17 +71,17 @@ def _combine_vocalists(row: pd.Series) -> str | None:
 
 
 def prepare_infographic_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    plan = _canonicalize_columns(df.copy())
+    plan = df.copy()
 
     required_columns = {
         DATE_REHEARSAL_COL,
         DATE_PRESENTATION_COL,
         REHEARSAL_TIME_COL,
-        "Director",
-        "Guitarist",
-        "Drummer",
-        "Bassist",
-        "Keyboardist",
+        DIRECTOR_COL,
+        GUITARIST_COL,
+        DRUMMER_COL,
+        BASSIST_COL,
+        KEYBOARDIST_COL,
     }
     missing_columns = sorted(required_columns - set(plan.columns))
     if missing_columns:
@@ -129,32 +101,54 @@ def format_date(value: pd.Timestamp) -> str:
     return f"{MONTHS[date_value.month]} {date_value.day}, {date_value.year}"
 
 
+def format_month_year(value: pd.Timestamp) -> str:
+    date_value = pd.Timestamp(value)
+    return f"{MONTHS[date_value.month]} {date_value.year}"
+
+
+def _strip_trailing_whitespace(content: str) -> str:
+    return "\n".join(line.rstrip() for line in content.splitlines()) + "\n"
+
+
 def _role_pairs(row: pd.Series) -> list[tuple[str, str]]:
     pairs = [
-        ("Director", row.get("Director")),
-        ("Guitar", row.get("Guitarist")),
-        ("Drums", row.get("Drummer")),
-        ("Bass", row.get("Bassist")),
-        ("Keyboard", row.get("Keyboardist")),
+        ("Director", row.get(DIRECTOR_COL)),
+        ("Guitar", row.get(GUITARIST_COL)),
+        ("Drums", row.get(DRUMMER_COL)),
+        ("Bass", row.get(BASSIST_COL)),
+        ("Keyboard", row.get(KEYBOARDIST_COL)),
         ("Vocalists", row.get(VOCALISTS_COL)),
     ]
     return [(label, str(value)) for label, value in pairs if not _is_missing(value)]
 
 
-def _chunk_rows(rows: Iterable[pd.Series], chunk_size: int) -> list[list[pd.Series]]:
-    pages: list[list[pd.Series]] = []
-    current_page: list[pd.Series] = []
+def _group_rows_by_service_month(plan_df: pd.DataFrame) -> list[tuple[str, list[pd.Series]]]:
+    sorted_rows = sorted(
+        (plan_df.iloc[index] for index in range(len(plan_df))),
+        key=lambda row: pd.Timestamp(row[DATE_PRESENTATION_COL]),
+    )
 
-    for row in rows:
-        current_page.append(row)
-        if len(current_page) == chunk_size:
-            pages.append(current_page)
-            current_page = []
+    pages: list[tuple[str, list[pd.Series]]] = []
+    current_month_key: tuple[int, int] | None = None
+    current_month_label = ""
+    current_rows: list[pd.Series] = []
 
-    if current_page:
-        pages.append(current_page)
+    for row in sorted_rows:
+        service_date = pd.Timestamp(row[DATE_PRESENTATION_COL])
+        month_key = (service_date.year, service_date.month)
 
-    return pages or [[]]
+        if current_month_key is not None and month_key != current_month_key:
+            pages.append((current_month_label, current_rows))
+            current_rows = []
+
+        current_month_key = month_key
+        current_month_label = format_month_year(service_date)
+        current_rows.append(row)
+
+    if current_rows:
+        pages.append((current_month_label, current_rows))
+
+    return pages
 
 
 def _render_card(row: pd.Series) -> str:
@@ -199,20 +193,14 @@ def render_infographic_html(
     plan_df: pd.DataFrame,
     *,
     title: str,
-    cards_per_page: int = 4,
     theme: HtmlTheme | None = None,
 ) -> str:
     html_theme = theme or HtmlTheme()
-    plan_rows = [plan_df.iloc[index] for index in range(len(plan_df))]
-    pages = _chunk_rows(plan_rows, cards_per_page)
-    subtitle = (
-        f"{format_date(plan_df[DATE_PRESENTATION_COL].min())} to "
-        f"{format_date(plan_df[DATE_PRESENTATION_COL].max())}"
-    )
+    pages = _group_rows_by_service_month(plan_df)
 
     page_sections = []
     total_pages = len(pages)
-    for page_index, page_rows in enumerate(pages, start=1):
+    for page_index, (month_label, page_rows) in enumerate(pages, start=1):
         cards_html = "\n".join(_render_card(row) for row in page_rows)
         page_sections.append(
             f"""
@@ -220,7 +208,7 @@ def render_infographic_html(
               <header class="page-header">
                 <div>
                   <h1>{escape(title)}</h1>
-                  <p>{escape(subtitle)}</p>
+                  <p>{escape(month_label)}</p>
                 </div>
                 <div class="page-number">Page {page_index}/{total_pages}</div>
               </header>
@@ -433,7 +421,7 @@ def render_infographic_html(
     }}
     """
 
-    return f"""<!DOCTYPE html>
+    return _strip_trailing_whitespace(f"""<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -449,14 +437,13 @@ def render_infographic_html(
     </main>
   </body>
 </html>
-"""
+""")
 
 
 def build_plan_infographic_html(
     plan_df: pd.DataFrame,
     *,
     title: str = "Agape Worship Ministry\nPlanning",
-    cards_per_page: int = 4,
     theme: HtmlTheme | None = None,
 ) -> str:
     prepared_plan_df = prepare_infographic_dataframe(plan_df)
@@ -464,6 +451,5 @@ def build_plan_infographic_html(
     return render_infographic_html(
         prepared_plan_df,
         title=title,
-        cards_per_page=cards_per_page,
         theme=theme,
     )

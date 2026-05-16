@@ -52,7 +52,7 @@ def replace_processed_plans(
         old_file.unlink()
 
     saved_paths = []
-    for seed, plan in plans.items():
-        saved_paths.append(save_csv(plan, processed_dir / f"planning_option_{seed}.csv"))
+    for plan_id, plan in plans.items():
+        saved_paths.append(save_csv(plan, processed_dir / f"planning_option_{plan_id}.csv"))
 
     return saved_paths

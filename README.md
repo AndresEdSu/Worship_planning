@@ -8,14 +8,28 @@ Planning a worship band manually can become difficult as the team grows. It is e
 
 This project turns worship availability spreadsheets into cleaned data, generated planning options, plan evaluation metrics, and dashboard views that make the scheduling process easier to review.
 
+## App Preview
+
+### Plan Comparison
+
+![Worship planning dashboard comparison view](docs/images/worship_planning_dashboard_comparison.png)
+
+### Monthly Plan View
+
+![Worship planning dashboard monthly plan view](docs/images/worship_planning_dashboard_plan_view.png)
+
+### Availability Profile
+
+![Worship planning dashboard availability profile](docs/images/worship_planning_dashboard_availability.png)
+
 ## Current Features
 
 - Loads worship availability from Excel.
 - Cleans and standardizes names, roles, dates, instruments, and availability fields.
 - Generates multiple planning options.
 - Scores plans using coverage, equity, rest, and resilience metrics.
-- Exports a lightweight HTML infographic for the selected plan.
-- Provides a Streamlit dashboard to compare generated plans.
+- Exports a lightweight monthly HTML plan view.
+- Provides a Streamlit dashboard to compare generated plans, inspect plan details, preview the monthly plan view, and review availability.
 
 ## Tech Stack
 
@@ -24,7 +38,6 @@ This project turns worship availability spreadsheets into cleaned data, generate
 - NumPy
 - Altair
 - OpenPyXL
-- Pillow
 - Streamlit
 
 ## Project Structure
@@ -38,6 +51,8 @@ Worship_planning/
 |   |   `-- worship_availability_demo_en.xlsx
 |   |-- interim/
 |   `-- processed/
+|-- docs/
+|   `-- images/
 |-- outputs/
 |-- src/
 |   |-- data/
@@ -48,7 +63,8 @@ Worship_planning/
 |   |   `-- run_pipeline.py
 |   |-- planning/
 |   |   |-- filters.py
-|   |   `-- plan_generation.py
+|   |   |-- plan_generation.py
+|   |   `-- schema.py
 |   `-- reporting/
 |       |-- dashboard_view.py
 |       |-- evaluation_metrics.py
@@ -110,7 +126,7 @@ After running the pipeline, launch the dashboard:
 python -m streamlit run app/streamlit_app.py
 ```
 
-The dashboard lets you compare generated plans, inspect the winning plan, review weekly assignments, and understand the score breakdown.
+The dashboard lets you compare generated plans, inspect the winning plan, review weekly assignments, preview and download the monthly HTML plan view, and understand the score breakdown.
 
 ## Notes
 

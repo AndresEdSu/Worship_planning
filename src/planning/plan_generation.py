@@ -4,12 +4,19 @@ import numpy as np
 import pandas as pd
 
 import src.planning.filters as filters
-
-
-REHEARSAL_DATE_COL = "Rehearsal Date (Saturday)"
-SERVICE_DATE_COL = "Service Date (Sunday)"
-REHEARSAL_TIME_COL = "Tentative Rehearsal Time"
-REQUIRED_PLAN_ROLES = ["Director", "Guitarist", "Drummer", "Vocalist_1"]
+from src.planning.schema import (
+    BASSIST_COL,
+    DIRECTOR_COL,
+    DRUMMER_COL,
+    GUITARIST_COL,
+    KEYBOARDIST_COL,
+    REHEARSAL_DATE_COL,
+    REHEARSAL_TIME_COL,
+    REQUIRED_PLAN_ROLE_COLS,
+    SERVICE_DATE_COL,
+    VOCALIST_1_COL,
+    VOCALIST_2_COL,
+)
 
 
 def generate_planning_dates(start_date, director_count):
@@ -43,17 +50,17 @@ def update_participation_tracking(shuffled_df, week_roles, week_index):
     assigned_members = get_assigned_members(week_roles)
     for member in assigned_members:
         shuffled_df.loc[shuffled_df["name"] == member, "last_participation"] = week_index
-    if pd.notna(week_roles["Director"]):
+    if pd.notna(week_roles[DIRECTOR_COL]):
         shuffled_df.loc[
-            shuffled_df["name"] == week_roles["Director"],
+            shuffled_df["name"] == week_roles[DIRECTOR_COL],
             "last_direction",
         ] = week_index
 
 
 def select_musicians(band_df, week_roles):
     priority_instruments = {
-        "guitar": "Guitarist",
-        "drums": "Drummer",
+        "guitar": GUITARIST_COL,
+        "drums": DRUMMER_COL,
     }
 
     for instrument, role in priority_instruments.items():
@@ -82,8 +89,8 @@ def select_musicians(band_df, week_roles):
         week_roles[role] = musician
 
     secondary_instruments = {
-        "bass": "Bassist",
-        "keyboard": "Keyboardist",
+        "bass": BASSIST_COL,
+        "keyboard": KEYBOARDIST_COL,
     }
 
     for instrument, role in secondary_instruments.items():
@@ -117,13 +124,13 @@ def select_vocalists(band_df, week_roles):
             "name",
         ]
 
-        if not pd.isna(week_roles["Guitarist"]):
-            week_roles["Vocalist_1"] = vocalist
-            week_roles["Vocalist_2"] = week_roles["Guitarist"]
+        if not pd.isna(week_roles[GUITARIST_COL]):
+            week_roles[VOCALIST_1_COL] = vocalist
+            week_roles[VOCALIST_2_COL] = week_roles[GUITARIST_COL]
         else:
-            week_roles["Vocalist_1"] = vocalist
-    elif not pd.isna(week_roles["Guitarist"]):
-        week_roles["Vocalist_1"] = week_roles["Guitarist"]
+            week_roles[VOCALIST_1_COL] = vocalist
+    elif not pd.isna(week_roles[GUITARIST_COL]):
+        week_roles[VOCALIST_1_COL] = week_roles[GUITARIST_COL]
 
 
 def select_best_band_for_week(
@@ -188,7 +195,7 @@ def select_best_band_for_week(
     if selected_band.empty or np.isnan(director_index):
         return
 
-    week_roles["Director"] = available_directors.loc[director_index, "name"]
+    week_roles[DIRECTOR_COL] = available_directors.loc[director_index, "name"]
     week_meta[REHEARSAL_TIME_COL] = rehearsal_time
 
     select_musicians(selected_band, week_roles)
@@ -233,13 +240,13 @@ def generate_plans(df, start_date, max_options=5, n_iter=10_000):
             }
 
             week_roles = {
-                "Director": np.nan,
-                "Guitarist": np.nan,
-                "Drummer": np.nan,
-                "Bassist": np.nan,
-                "Keyboardist": np.nan,
-                "Vocalist_1": np.nan,
-                "Vocalist_2": np.nan,
+                DIRECTOR_COL: np.nan,
+                GUITARIST_COL: np.nan,
+                DRUMMER_COL: np.nan,
+                BASSIST_COL: np.nan,
+                KEYBOARDIST_COL: np.nan,
+                VOCALIST_1_COL: np.nan,
+                VOCALIST_2_COL: np.nan,
             }
 
             select_best_band_for_week(
@@ -256,8 +263,9 @@ def generate_plans(df, start_date, max_options=5, n_iter=10_000):
 
         plan = pd.DataFrame(plan_rows[-plan_weeks:])
 
-        if not plan[REQUIRED_PLAN_ROLES].isna().any().any():
-            valid_plans[seed] = plan.copy()
+        if not plan[list(REQUIRED_PLAN_ROLE_COLS)].isna().any().any():
+            plan_id = len(valid_plans) + 1
+            valid_plans[plan_id] = plan.copy()
             if len(valid_plans) == max_options:
                 break
 

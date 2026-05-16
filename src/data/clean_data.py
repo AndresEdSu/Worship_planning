@@ -5,6 +5,8 @@ import unicodedata
 
 import pandas as pd
 
+from src.planning.schema import PLAN_DATE_COLS, PLAN_ROLE_COLS, REHEARSAL_TIME_COL
+
 
 COLUMN_RENAME_MAP = {
     "marca_temporal": "timestamp",
@@ -301,18 +303,10 @@ def clean_availability_data(df):
 def clean_generated_plan_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    date_columns = ["Rehearsal Date (Saturday)", "Service Date (Sunday)"]
-    role_columns = [
-        "Director",
-        "Guitarist",
-        "Drummer",
-        "Bassist",
-        "Keyboardist",
-        "Vocalist_1",
-        "Vocalist_2",
-    ]
-    text_columns = ["Tentative Rehearsal Time", *role_columns]
-    ordered_columns = [*date_columns, "Tentative Rehearsal Time", *role_columns]
+    date_columns = list(PLAN_DATE_COLS)
+    role_columns = list(PLAN_ROLE_COLS)
+    text_columns = [REHEARSAL_TIME_COL, *role_columns]
+    ordered_columns = [*date_columns, REHEARSAL_TIME_COL, *role_columns]
 
     for column in date_columns:
         if column in df.columns:

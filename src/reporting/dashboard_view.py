@@ -6,7 +6,7 @@ from src.reporting.plan_evaluation import DATE_COL, DEFAULT_WEIGHTS
 
 
 SUMMARY_COLUMN_LABELS = {
-    "rank": "#",
+    "rank": "Rank",
     "plan_id": "Plan",
     "overall_score": "Overall Score",
     "coverage_score": "Coverage",
@@ -102,11 +102,20 @@ def build_chart_df(
         return summary_df.copy()
 
     weights = weights or DEFAULT_WEIGHTS
-    chart_df = pd.DataFrame(index=summary_df["plan_id"].astype(str))
+    chart_source_df = summary_df.sort_values("plan_id")
+    best_plan_id = int(summary_df.iloc[0]["plan_id"])
+    plan_ids = chart_source_df["plan_id"].astype(int)
+    chart_df = pd.DataFrame(index=plan_ids.astype(str))
     chart_df.index.name = "Plan"
+    chart_df["Rank"] = chart_source_df["rank"].astype(int).values
+    chart_df["Overall Score"] = chart_source_df["overall_score"].values
+    chart_df["Plan Label"] = [
+        f"Plan {plan_id} (Winner)" if plan_id == best_plan_id else f"Plan {plan_id}"
+        for plan_id in plan_ids
+    ]
     for score_key, label in BASE_SCORE_LABELS.items():
         weight_key = SCORE_WEIGHT_KEYS[score_key]
-        chart_df[label] = summary_df[score_key].values * weights[weight_key]
+        chart_df[label] = chart_source_df[score_key].values * weights[weight_key]
     return chart_df
 
 

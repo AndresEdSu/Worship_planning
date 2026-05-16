@@ -62,7 +62,7 @@ def load_interim_availability_data(path: str | Path | None = None, **kwargs: Any
 
 
 def load_processed_plans_data(processed_dir: str | Path | None = None) -> dict[int, pd.DataFrame]:
-    """Load every generated planning option keyed by its seed."""
+    """Load every generated planning option keyed by its plan id."""
     processed_dir = Path(processed_dir) if processed_dir is not None else PROCESSED_DIR
     plans: dict[int, pd.DataFrame] = {}
 
@@ -74,7 +74,7 @@ def load_processed_plans_data(processed_dir: str | Path | None = None) -> dict[i
         match = PLAN_FILE_PATTERN.match(path.name)
         if match is None:
             continue
-        seed = int(match.group(1))
-        plans[seed] = load_csv(path)
+        plan_id = int(match.group(1))
+        plans[plan_id] = load_csv(path)
 
     return plans

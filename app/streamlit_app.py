@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 import altair as alt
 import streamlit as st
 
 from src.data.load_data import PROCESSED_DIR, load_interim_availability_data, load_processed_plans_data
 from src.reporting.availability_profile import build_availability_profile
 from src.reporting.dashboard_view import build_dashboard_view
+from src.reporting.export_infographic import build_plan_infographic_html
 from src.reporting.plan_evaluation import DEFAULT_WEIGHTS, evaluate_plan_collection
 
 
@@ -18,7 +18,7 @@ st.set_page_config(
 
 
 SUMMARY_TABLE_FORMAT = {
-    "#": "{:.0f}",
+    "Rank": "{:.0f}",
     "Plan": "{:.0f}",
     "Overall Score": "{:.1f}",
     "Coverage": "{:.1f}",
@@ -42,13 +42,37 @@ AVAILABILITY_TABLE_FORMAT = {
 }
 
 
+def render_global_styles() -> None:
+    st.markdown(
+        """
+        <style>
+          button[role="tab"],
+          button[role="tab"] *,
+          div[role="tab"],
+          div[role="tab"] *,
+          [data-baseweb="tab"],
+          [data-baseweb="tab"] * {
+            cursor: pointer;
+          }
+
+          [data-testid="stSelectbox"] [data-baseweb="select"],
+          [data-testid="stSelectbox"] [data-baseweb="select"] * {
+            cursor: pointer !important;
+          }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 @st.cache_data(show_spinner=False)
 def load_dashboard_data(
     processed_dir: str,
 ) -> dict:
-    plans = load_processed_plans_data()
+    plans = load_processed_plans_data(processed_dir)
     summary_df, results, best_plan_id = evaluate_plan_collection(plans, DEFAULT_WEIGHTS)
     dashboard_view = build_dashboard_view(summary_df, results, plans, best_plan_id)
+    dashboard_view["plans"] = plans
 
     try:
         availability_df = load_interim_availability_data()
@@ -132,31 +156,68 @@ def render_plan_tables(plan_view: dict) -> None:
     )
 
 
+def render_infographic_download_button(plan_id: int, infographic_html: str, key: str) -> None:
+    st.download_button(
+        "Download HTML Infographic",
+        data=infographic_html,
+        file_name=f"worship_planning_plan_{plan_id}.html",
+        mime="text/html",
+        width="stretch",
+        key=key,
+    )
+
+
 def render_score_contribution_chart(chart_df, score_weights: dict[str, float]) -> None:
+    metadata_columns = ["Rank", "Overall Score", "Plan Label"]
     chart_data = chart_df.reset_index().melt(
-        id_vars="Plan",
+        id_vars=["Plan", *metadata_columns],
         var_name="Score",
         value_name="Weighted Contribution",
     )
     chart_data["Weight"] = chart_data["Score"].str.lower().map(score_weights)
+    winner_label_data = chart_df.reset_index().loc[
+        lambda dataframe: dataframe["Rank"].eq(1),
+        ["Plan", "Plan Label", "Rank", "Overall Score"],
+    ].assign(Label="Winner")
 
-    chart = (
+    bars = (
         alt.Chart(chart_data)
         .mark_bar()
         .encode(
             x=alt.X("Plan:N", sort=None, title="Plan", axis=alt.Axis(labelAngle=0)),
-            y=alt.Y("Weighted Contribution:Q", stack="zero", title="Overall Score"),
+            y=alt.Y(
+                "Weighted Contribution:Q",
+                stack="zero",
+                title="Overall Score",
+                scale=alt.Scale(domain=[0, 100]),
+            ),
             color=alt.Color("Score:N", title="Score"),
             order=alt.Order("Weight:Q", sort="descending"),
             tooltip=[
-                alt.Tooltip("Plan:N"),
+                alt.Tooltip("Plan Label:N", title="Plan"),
+                alt.Tooltip("Rank:Q", format=".0f"),
+                alt.Tooltip("Overall Score:Q", format=".1f"),
                 alt.Tooltip("Score:N"),
                 alt.Tooltip("Weight:Q", format=".0%"),
                 alt.Tooltip("Weighted Contribution:Q", format=".2f"),
             ],
         )
-        .properties(height=360)
     )
+    winner_label = (
+        alt.Chart(winner_label_data)
+        .mark_text(color="#559E12", fontWeight="bold", fontSize=13, dy=-10)
+        .encode(
+            x=alt.X("Plan:N", sort=None),
+            y=alt.Y("Overall Score:Q", scale=alt.Scale(domain=[0, 100])),
+            text="Label:N",
+            tooltip=[
+                alt.Tooltip("Plan Label:N", title="Plan"),
+                alt.Tooltip("Rank:Q", format=".0f"),
+                alt.Tooltip("Overall Score:Q", format=".1f"),
+            ],
+        )
+    )
+    chart = (bars + winner_label).properties(height=360)
     st.altair_chart(chart, width="stretch")
 
 
@@ -169,7 +230,11 @@ def render_availability_bar_chart(dataframe, category_column: str, value_column:
         alt.Chart(dataframe)
         .mark_bar()
         .encode(
-            x=alt.X(f"{value_column}:Q", title=value_column),
+            x=alt.X(
+                f"{value_column}:Q",
+                title=value_column,
+                axis=alt.Axis(format=".0f", tickMinStep=1),
+            ),
             y=alt.Y(f"{category_column}:N", sort="-x", title=None),
             tooltip=[
                 alt.Tooltip(f"{category_column}:N"),
@@ -266,8 +331,14 @@ def render_availability_tab(availability_profile: dict | None) -> None:
     )
 
 
-def render_best_plan_tab(best_plan_id: int, best_plan_view: dict) -> None:
+def render_best_plan_tab(best_plan_id: int, best_plan_view: dict, best_plan_df) -> None:
     st.subheader(f"Winning Plan: {best_plan_id}")
+    infographic_html = build_plan_infographic_html(best_plan_df)
+    render_infographic_download_button(
+        best_plan_id,
+        infographic_html,
+        key="winning-plan-infographic",
+    )
 
     component_metrics = build_component_metrics(best_plan_view)
     score_cols = st.columns(len(component_metrics))
@@ -288,6 +359,7 @@ def render_selected_plan_tab(
     delta: float,
 ) -> None:
     st.subheader(f"Plan {selected_plan_id} Details")
+
     selected_score_metrics = list(selected_plan_view["score_metrics"].values())
     selected_score_cols = st.columns(len(selected_score_metrics))
     for column, score_metric in zip(selected_score_cols, selected_score_metrics):
@@ -301,7 +373,21 @@ def render_selected_plan_tab(
     render_plan_tables(selected_plan_view)
 
 
+def render_plan_view_tab(selected_plan_id: int, selected_plan_df) -> None:
+    st.subheader(f"Plan {selected_plan_id} View")
+    infographic_html = build_plan_infographic_html(selected_plan_df)
+    render_infographic_download_button(
+        selected_plan_id,
+        infographic_html,
+        key="plan-view-infographic",
+    )
+    st.divider()
+    st.iframe(infographic_html, height=1100)
+
+
 def main() -> None:
+    render_global_styles()
+
     st.title("Worship Planning Dashboard")
     st.caption("Compare the generated options and understand why one plan scored better than the others.")
 
@@ -324,6 +410,8 @@ def main() -> None:
 
     best_plan_view = dashboard_view["plan_views"][best_plan_id]
     selected_plan_view = dashboard_view["plan_views"][selected_plan_id]
+    best_plan_df = dashboard_view["plans"][best_plan_id]
+    selected_plan_df = dashboard_view["plans"][selected_plan_id]
 
     delta = (
         selected_plan_view["score_metrics"]["overall_score"]["score_value"]
@@ -332,18 +420,21 @@ def main() -> None:
 
     render_top_metrics(best_plan_view)
 
-    comparison_tab, best_plan_tab, selected_plan_tab, availability_tab = st.tabs(
-        ["Comparison", "Winning Plan", f"Plan {selected_plan_id}", "Availability"]
+    comparison_tab, best_plan_tab, plan_details_tab, plan_view_tab, availability_tab = st.tabs(
+        ["Comparison", "Winning Plan", "Plan Details", "Plan View", "Availability"]
     )
 
     with comparison_tab:
         render_comparison_tab(dashboard_view, best_plan_id, best_plan_view)
 
     with best_plan_tab:
-        render_best_plan_tab(best_plan_id, best_plan_view)
+        render_best_plan_tab(best_plan_id, best_plan_view, best_plan_df)
 
-    with selected_plan_tab:
+    with plan_details_tab:
         render_selected_plan_tab(selected_plan_id, selected_plan_view, delta)
+
+    with plan_view_tab:
+        render_plan_view_tab(selected_plan_id, selected_plan_df)
 
     with availability_tab:
         render_availability_tab(dashboard_view["availability_profile"])
