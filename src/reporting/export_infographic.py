@@ -443,7 +443,7 @@ def render_infographic_html(
 def build_plan_infographic_html(
     plan_df: pd.DataFrame,
     *,
-    title: str = "Agape Worship Ministry\nPlanning",
+    title: str = "Worship Planning",
     theme: HtmlTheme | None = None,
 ) -> str:
     prepared_plan_df = prepare_infographic_dataframe(plan_df)
