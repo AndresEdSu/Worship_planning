@@ -49,7 +49,7 @@ SATURDAY_UNAVAILABLE_ALIASES = {
     "saturday_2": ("second saturday", "segundo sabado"),
     "saturday_3": ("third saturday", "tercer sabado"),
     "saturday_4": ("fourth saturday", "cuarto sabado"),
-    "saturday_5": ("fifth saturday", "quinto sabado"),
+    "last_saturday": ("last saturday", "ultimo sabado"),
 }
 
 FREQUENCY_MAP = {
@@ -202,7 +202,7 @@ def adjust_represented_availability(df):
         "saturday_2",
         "saturday_3",
         "saturday_4",
-        "saturday_5",
+        "last_saturday",
     ]
 
     for idx in df.index:
@@ -287,7 +287,7 @@ def clean_availability_data(df):
         "saturday_2",
         "saturday_3",
         "saturday_4",
-        "saturday_5",
+        "last_saturday",
         "frequency",
     ]
     optional_columns = ["suggestions"]

@@ -19,7 +19,7 @@ SATURDAY_LABELS = {
     "saturday_2": "Second Saturday",
     "saturday_3": "Third Saturday",
     "saturday_4": "Fourth Saturday",
-    "saturday_5": "Fifth Saturday",
+    "last_saturday": "Last Saturday",
 }
 FREQUENCY_LABELS = {
     2: "Every 2 weeks",

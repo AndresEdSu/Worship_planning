@@ -5,7 +5,7 @@ import pandas as pd
 
 
 def get_saturday_ordinal_column(date):
-    """Return the availability column for the given Saturday of the month."""
+    """Return the first-through-fourth availability column for the Saturday."""
     if date.weekday() != calendar.SATURDAY:
         return None
 
@@ -20,17 +20,37 @@ def get_saturday_ordinal_column(date):
         "saturday_2",
         "saturday_3",
         "saturday_4",
-        "saturday_5",
     ]
 
-    return ordinals[weeks] if 0 <= weeks < 5 else None
+    return ordinals[weeks] if 0 <= weeks < 4 else None
+
+
+def is_last_saturday_of_month(date):
+    if date.weekday() != calendar.SATURDAY:
+        return False
+    return (date + timedelta(days=7)).month != date.month
+
+
+def get_saturday_availability_columns(date):
+    if date.weekday() != calendar.SATURDAY:
+        return []
+
+    columns = []
+    ordinal_column = get_saturday_ordinal_column(date)
+    if ordinal_column is not None:
+        columns.append(ordinal_column)
+
+    if is_last_saturday_of_month(date):
+        columns.append("last_saturday")
+
+    return columns
 
 
 def is_available_on_saturday(row, saturday_date):
-    saturday_column = get_saturday_ordinal_column(saturday_date)
-    if saturday_column is None:
+    saturday_columns = get_saturday_availability_columns(saturday_date)
+    if not saturday_columns:
         return False
-    return row.get(saturday_column, 0) == 1
+    return all(row.get(saturday_column, 0) == 1 for saturday_column in saturday_columns)
 
 
 def respects_frequency(row, week_index):
