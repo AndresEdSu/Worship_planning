@@ -3,6 +3,11 @@ import calendar
 
 import pandas as pd
 
+from src.planning.frequency_policy import FrequencyPolicy
+
+
+TRUE_VALUES = {"yes", "y", "true", "si", "s", "1"}
+
 
 def get_saturday_ordinal_column(date):
     """Return the first-through-fourth availability column for the Saturday."""
@@ -53,56 +58,96 @@ def is_available_on_saturday(row, saturday_date):
     return all(row.get(saturday_column, 0) == 1 for saturday_column in saturday_columns)
 
 
-def respects_frequency(row, week_index):
-    frequency = row["frequency"]
-    last_participation = row["last_participation"]
-    return (week_index - last_participation) >= frequency
+def respects_frequency(row, week_index, frequency_policy: FrequencyPolicy | None = None):
+    frequency_policy = frequency_policy or FrequencyPolicy()
+    return frequency_policy.respects_frequency(row, week_index)
 
 
-def is_available_to_direct(row, week_index, director_count):
+def is_available_to_direct(row, week_index, director_rotation_gap):
     director = row["director"]
     last_direction = row["last_direction"]
-    return bool(director) and (week_index - last_direction) >= director_count
+    return bool(director) and (week_index - last_direction) >= director_rotation_gap
 
 
-def is_available_to_play(row, week_index, director_count):
+def is_available_to_play(
+    row,
+    week_index,
+    director_rotation_gap,
+    frequency_policy: FrequencyPolicy | None = None,
+):
+    frequency_policy = frequency_policy or FrequencyPolicy()
     last_direction = int(row["last_direction"])
-    overlap_window = int(row["frequency"])
+    overlap_window = frequency_policy.overlap_window(row)
+    if overlap_window is None:
+        return False
 
-    next_direction_week = director_count + last_direction
+    next_direction_week = director_rotation_gap + last_direction
     blocked_start = next_direction_week - overlap_window
 
     return not (blocked_start < week_index < next_direction_week)
 
 
-def get_weekly_available_members(df, saturday_date, week_index):
+def get_weekly_available_members(
+    df,
+    saturday_date,
+    week_index,
+    frequency_policy: FrequencyPolicy | None = None,
+):
+    frequency_policy = frequency_policy or FrequencyPolicy()
     available = df.copy()
     available = available[
         available.apply(lambda row: is_available_on_saturday(row, saturday_date), axis=1)
     ]
     available = available[
-        available.apply(lambda row: respects_frequency(row, week_index), axis=1)
+        available.apply(
+            lambda row: respects_frequency(row, week_index, frequency_policy),
+            axis=1,
+        )
     ]
 
     return available
 
 
-def get_available_directors(available, week_index, director_count):
+def get_available_directors(available, week_index, director_rotation_gap):
     return available[
-        available.apply(lambda row: is_available_to_direct(row, week_index, director_count), axis=1)
+        available.apply(
+            lambda row: is_available_to_direct(row, week_index, director_rotation_gap),
+            axis=1,
+        )
     ]
 
 
-def get_available_band(available, possible_director_index, week_index, director_count):
+def get_available_band(
+    available,
+    possible_director_index,
+    week_index,
+    director_rotation_gap,
+    frequency_policy: FrequencyPolicy | None = None,
+):
+    frequency_policy = frequency_policy or FrequencyPolicy()
     available_band = available.drop(possible_director_index)
     available_band = available_band[
         available_band.apply(
-            lambda row: is_available_to_play(row, week_index, director_count),
+            lambda row: is_available_to_play(
+                row,
+                week_index,
+                director_rotation_gap,
+                frequency_policy,
+            ),
             axis=1,
         )
     ]
 
     return available_band
+
+
+def requires_representative_presence(row):
+    value = row.get("requires_representative_present", 0)
+    if pd.isna(value):
+        return False
+    if isinstance(value, str):
+        return value.strip().lower() in TRUE_VALUES
+    return bool(value)
 
 
 def represented_director_validation(
@@ -111,6 +156,10 @@ def represented_director_validation(
     team_members,
     available_band_names,
 ):
+    possible_director = available.loc[possible_director_index]
+    if not requires_representative_presence(possible_director):
+        return True
+
     representative = available.loc[possible_director_index, "representative"]
     if not pd.isna(representative) and representative in team_members:
         if representative not in available_band_names:
@@ -126,9 +175,11 @@ def filter_represented_members(
 ):
     present_names = set(available_band_names) | {director}
     representative = available_band["representative"]
+    requires_presence = available_band.apply(requires_representative_presence, axis=1)
 
     mask = (
-        representative.isna()
+        ~requires_presence
+        | representative.isna()
         | ~representative.isin(team_members)
         | representative.isin(present_names)
     )

@@ -50,11 +50,21 @@ Thumbs.db
 *.log
 
 # -------------------------
-# Local or generated data
+# Local/private inputs and generated artifacts
 # -------------------------
-data/raw/worship_availability.xlsx
-data/raw/worship_availability_demo_es.xlsx
-**/final_worship_planning_20260201.xlsx
+data/raw/*
+!data/raw/worship_availability_demo_en.xlsx
+!data/raw/worship_availability_demo_es.xlsx
+
+data/interim/*
+!data/interim/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
+
+outputs/*
+!outputs/worship_planning_2026-01-04_2026-06-28.html
+!outputs/worship_planning_2026-01-04_2026-06-28.xlsx
 
 # -------------------------
 # Notes

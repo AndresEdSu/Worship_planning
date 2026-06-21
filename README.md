@@ -25,9 +25,13 @@ This project turns worship availability spreadsheets into cleaned data, generate
 ## Current Features
 
 - Loads worship availability from Excel.
-- Cleans and standardizes names, roles, dates, instruments, and availability fields.
-- Generates multiple planning options.
+- Cleans and standardizes names, roles, instruments, schedules, frequencies, and availability fields.
+- Supports English and Spanish source-column aliases.
+- Applies representative-attendance constraints only when explicitly required per member.
+- Generates multiple planning options across progressive relaxation levels.
+- Supports planning by week count or by an inclusive Sunday date range.
 - Scores plans using coverage, equity, rest, and resilience metrics.
+- Writes a generation report describing attempts and relaxation policies used.
 - Exports a lightweight monthly HTML plan view.
 - Provides a Streamlit dashboard to compare generated plans, inspect plan details, preview the monthly plan view, and review availability.
 
@@ -62,10 +66,13 @@ Worship_planning/
 |   |-- pipeline/
 |   |   `-- run_pipeline.py
 |   |-- planning/
+|   |   |-- frequency_policy.py
 |   |   |-- filters.py
 |   |   |-- plan_generation.py
+|   |   |-- relaxation_policy.py
 |   |   `-- schema.py
 |   `-- reporting/
+|       |-- availability_profile.py
 |       |-- dashboard_view.py
 |       |-- evaluation_metrics.py
 |       |-- export_infographic.py
@@ -97,12 +104,67 @@ pip install -r requirements.txt
 Generate cleaned data, planning options, evaluation scores, and the HTML infographic:
 
 ```bash
-python -m src.pipeline.run_pipeline --start-date 2026-01-04
+python -m src.pipeline.run_pipeline --raw-path data/raw/worship_availability_demo_en.xlsx --start-date 2026-07-05 --end-date 2026-08-30 --relax-after-seconds 120
 ```
 
 If `--start-date` is omitted, the pipeline uses its default Sunday start date.
-The start date must be a Sunday service date.
-Use `--raw-path` to run the pipeline against another availability workbook.
+All service dates must be Sundays.
+
+### Planning Range
+
+Use `--end-date` to generate an inclusive Sunday-to-Sunday range:
+
+```bash
+python -m src.pipeline.run_pipeline --start-date 2026-07-05 --end-date 2026-08-30
+```
+
+Both dates must be Sundays. `--end-date` and `--plan-weeks` cannot be used together.
+
+Alternatively, provide a number of service weeks:
+
+```bash
+python -m src.pipeline.run_pipeline --start-date 2026-07-05 --plan-weeks 9
+```
+
+If neither option is provided, the plan defaults to `director_count * 2` weeks.
+
+### Relaxation Levels
+
+The generator starts at level 0 and moves upward only when it cannot find enough valid plans. `--max-relaxation` defaults to 4.
+
+| Level | Frequency | Director rotation | Required roles | Preferred roles |
+|---|---|---|---|---|
+| 0 | Strict | 100% rotation gap | Director, Guitarist, Drummer, Vocalist_1 | None |
+| 1 | Slightly relaxed | 100% rotation gap | Director, Guitarist, Drummer, Vocalist_1 | None |
+| 2 | More relaxed | 75% rotation gap | Director, Guitarist, Drummer, Vocalist_1 | None |
+| 3 | Strongly relaxed | 75% rotation gap | Director, Guitarist, Vocalist_1 | Drummer |
+| 4 | Maximum configured relaxation | 60% rotation gap | Director, Vocalist_1 | Guitarist, Drummer |
+
+The source frequency values are never modified. Relaxation only changes the effective constraints used during generation.
+
+### Generation Controls
+
+- `--n-iter`: maximum attempts per relaxation level; defaults to `10000`.
+- `--relax-after-seconds`: time limit per relaxation level; defaults to `300`. Use `0` to rely only on `--n-iter`.
+- `--warmup-weeks`: simulated pre-planning history; defaults to `0`.
+- `--max-relaxation`: highest allowed planning relaxation level, from `0` to `4`.
+
+Run `python -m src.pipeline.run_pipeline --help` for the complete CLI reference.
+
+## Representative Attendance
+
+The optional representative-presence field is supported in both languages:
+
+```text
+requires_representative_present
+Requiere representante presente
+```
+
+Accepted true values include `yes`, `y`, `true`, `si`, `s`, and `1`. Empty and false values do not require the representative to attend.
+
+When presence is required, the represented member and representative must share the same Saturday availability and rehearsal time. The planner also requires the representative to be present in that week's team.
+
+## Generated Files
 
 The pipeline reads from:
 
@@ -113,9 +175,11 @@ data/raw/worship_availability_demo_en.xlsx
 and writes generated outputs under:
 
 ```text
-data/interim/
-data/processed/
-outputs/
+data/interim/availability_clean.csv
+data/processed/planning_option_*.csv
+outputs/plan_generation_report.txt
+outputs/worship_planning_<start>_<end>.xlsx
+outputs/worship_planning_<start>_<end>.html
 ```
 
 ## Run the Dashboard

@@ -15,6 +15,7 @@ COLUMN_RENAME_MAP = {
     "first_and_last_name": "name",
     "nombre": "name",
     "representante": "representative",
+    "requiere_representante_presente": "requires_representative_present",
     "instrumento": "instrument",
     "instrumento_principal": "primary_instrument",
     "director_voz_principal": "director",
@@ -65,6 +66,8 @@ FREQUENCY_MAP = {
 }
 
 TRUE_VALUES = {"yes", "y", "true", "si", "s", "1"}
+FALSE_VALUES = {"no", "n", "false", "0"}
+
 
 def normalize_column_name(col):
     col = str(col).strip().lower()
@@ -193,6 +196,28 @@ def map_frequency(df):
     return df
 
 
+def map_requires_representative_present(df):
+    df = df.copy()
+
+    if "requires_representative_present" not in df.columns:
+        df["requires_representative_present"] = 0
+        return df
+
+    presence_values = df["requires_representative_present"]
+    valid_values = TRUE_VALUES | FALSE_VALUES
+    invalid_mask = presence_values.notna() & ~presence_values.isin(valid_values)
+
+    if invalid_mask.any():
+        invalid_values = sorted(presence_values.loc[invalid_mask].astype(str).unique())
+        raise ValueError(
+            "Unexpected requires_representative_present values found: "
+            f"{invalid_values}. Expected yes/no style values."
+        )
+
+    df["requires_representative_present"] = presence_values.isin(TRUE_VALUES).astype(int)
+    return df
+
+
 def adjust_represented_availability(df):
     df = df.copy()
     availability_cols = [
@@ -207,8 +232,11 @@ def adjust_represented_availability(df):
 
     for idx in df.index:
         representative = df.loc[idx, "representative"]
+        requires_representative_present = bool(
+            df.loc[idx, "requires_representative_present"]
+        )
 
-        if pd.isna(representative):
+        if pd.isna(representative) or not requires_representative_present:
             continue
 
         match = df.index[df["name_norm"].eq(representative)]
@@ -258,10 +286,12 @@ def clean_availability_data(df):
         "primary_instrument",
         "unavailable_days",
         "frequency",
+        "requires_representative_present",
     ]
     df = normalize_text_columns(df, cols_to_lower_normalize, lower_normalizer_text)
 
     df["director"] = df["director"].isin(TRUE_VALUES).astype(int)
+    df = map_requires_representative_present(df)
 
     df = create_instrument_flags(df)
     df = create_schedule_flags(df)
@@ -274,6 +304,7 @@ def clean_availability_data(df):
         "name",
         "name_norm",
         "representative",
+        "requires_representative_present",
         "director",
         "primary_instrument",
         "voice",

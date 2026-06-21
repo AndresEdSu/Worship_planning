@@ -14,7 +14,11 @@ from src.data.save_data import (
     save_excel,
     save_text,
 )
-from src.planning.plan_generation import generate_plans
+from src.planning.plan_generation import (
+    calculate_plan_weeks_from_dates,
+    generate_plans_with_report,
+)
+from src.planning.relaxation_policy import MAX_RELAXATION_LEVEL
 from src.reporting.plan_evaluation import (
     DATE_COL,
     DEFAULT_WEIGHTS,
@@ -35,10 +39,75 @@ def parse_args():
         default=None,
         help="Optional path to the raw availability workbook.",
     )
+    parser.add_argument(
+        "--n-iter",
+        type=int,
+        default=10_000,
+        help="Maximum planning attempts per relaxation level.",
+    )
+    parser.add_argument(
+        "--max-relaxation",
+        type=int,
+        default=MAX_RELAXATION_LEVEL,
+        help=(
+            "Maximum planning relaxation level. "
+            f"Use 0 to keep strict rules; max is {MAX_RELAXATION_LEVEL}."
+        ),
+    )
+    parser.add_argument(
+        "--relax-after-seconds",
+        type=float,
+        default=300.0,
+        help=(
+            "Seconds to try each relaxation level before moving to the next one. "
+            "Use 0 to rely only on --n-iter."
+        ),
+    )
+    planning_range = parser.add_mutually_exclusive_group()
+    planning_range.add_argument(
+        "--plan-weeks",
+        type=int,
+        default=None,
+        help=(
+            "Number of service weeks to generate from --start-date. "
+            "Defaults to director_count * 2."
+        ),
+    )
+    planning_range.add_argument(
+        "--end-date",
+        default=None,
+        help=(
+            "Inclusive Sunday service end date in YYYY-MM-DD format. "
+            "Cannot be combined with --plan-weeks."
+        ),
+    )
+    parser.add_argument(
+        "--warmup-weeks",
+        type=int,
+        default=0,
+        help=(
+            "Number of pre-planning weeks used to build participation history. "
+            "Defaults to 0, so no simulated history is applied."
+        ),
+    )
     return parser.parse_args()
 
 
-def main(start_date: datetime, raw_path: str | None = None):
+def main(
+    start_date: datetime,
+    raw_path: str | None = None,
+    n_iter: int = 10_000,
+    max_relaxation: int = MAX_RELAXATION_LEVEL,
+    relax_after_seconds: float = 300.0,
+    plan_weeks: int | None = None,
+    end_date: datetime | None = None,
+    warmup_weeks: int | None = 0,
+):
+    if plan_weeks is not None and end_date is not None:
+        raise ValueError("plan_weeks and end_date cannot be used together.")
+    if end_date is not None:
+        plan_weeks = calculate_plan_weeks_from_dates(start_date, end_date)
+
     df_raw = load_raw_availability_data(raw_path)
     df_clean = clean_availability_data(df_raw)
 
@@ -48,7 +117,22 @@ def main(start_date: datetime, raw_path: str | None = None):
     print(f"Cleaned data saved to: {clean_output_path}")
     print(df_clean.shape)
 
-    valid_plans = generate_plans(df_clean, start_date, max_options=5, n_iter=10_000)
+    generation_result = generate_plans_with_report(
+        df_clean,
+        start_date,
+        max_options=5,
+        n_iter=n_iter,
+        max_relaxation=max_relaxation,
+        relax_after_seconds=relax_after_seconds,
+        plan_weeks=plan_weeks,
+        warmup_weeks=warmup_weeks,
+    )
+    valid_plans = generation_result.plans
+
+    generation_report_path = OUTPUTS_DIR / "plan_generation_report.txt"
+    save_text(generation_result.report.to_text(), generation_report_path)
+    print(f"\nPlan generation report saved to: {generation_report_path}")
+
     cleaned_plans = {
         plan_id: clean_generated_plan_data(plan)
         for plan_id, plan in valid_plans.items()
@@ -112,4 +196,18 @@ def main(start_date: datetime, raw_path: str | None = None):
 if __name__ == "__main__":
     args = parse_args()
     start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
-    main(start_date, raw_path=args.raw_path)
+    end_date = (
+        datetime.strptime(args.end_date, "%Y-%m-%d")
+        if args.end_date is not None
+        else None
+    )
+    main(
+        start_date,
+        raw_path=args.raw_path,
+        n_iter=args.n_iter,
+        max_relaxation=args.max_relaxation,
+        relax_after_seconds=args.relax_after_seconds,
+        plan_weeks=args.plan_weeks,
+        end_date=end_date,
+        warmup_weeks=args.warmup_weeks,
+    )
