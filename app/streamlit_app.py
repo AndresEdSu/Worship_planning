@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import altair as alt
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.data.load_data import PROCESSED_DIR, load_interim_availability_data, load_processed_plans_data
 from src.reporting.availability_profile import build_availability_profile
@@ -382,7 +383,7 @@ def render_plan_view_tab(selected_plan_id: int, selected_plan_df) -> None:
         key="plan-view-infographic",
     )
     st.divider()
-    st.iframe(infographic_html, height=1100)
+    components.html(infographic_html, height=1100, scrolling=True)
 
 
 def main() -> None:

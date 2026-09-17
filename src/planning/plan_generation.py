@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, field
 from datetime import timedelta
 from time import monotonic
 
@@ -24,6 +25,23 @@ from src.planning.schema import (
 
 MAX_AUTO_WARMUP_WEEKS = 16
 
+INSTRUMENT_BY_ROLE = {
+    GUITARIST_COL: "guitar",
+    DRUMMER_COL: "drums",
+    BASSIST_COL: "bass",
+    KEYBOARDIST_COL: "keyboard",
+}
+PRIMARY_ONLY_ROLES = {
+    BASSIST_COL,
+    KEYBOARDIST_COL,
+}
+INSTRUMENT_ROLE_TIEBREAK = {
+    DRUMMER_COL: 0,
+    GUITARIST_COL: 1,
+    BASSIST_COL: 2,
+    KEYBOARDIST_COL: 3,
+}
+
 
 @dataclass(frozen=True)
 class PlanGenerationAttempt:
@@ -47,6 +65,7 @@ class PlanGenerationReport:
     total_elapsed_seconds: float
     attempts: tuple[PlanGenerationAttempt, ...]
     plan_relaxation_levels: dict[int, int]
+    plan_frequency_relaxations: dict[int, dict[str, int]] = field(default_factory=dict)
 
     @property
     def used_relaxation(self) -> bool:
@@ -97,11 +116,26 @@ class PlanGenerationReport:
         else:
             lines.append("- Plan relaxation levels: none")
 
+        if self.plan_frequency_relaxations:
+            for plan_id, role_counts in sorted(self.plan_frequency_relaxations.items()):
+                if not role_counts:
+                    continue
+                summary = ", ".join(
+                    f"{role}={count}"
+                    for role, count in sorted(role_counts.items())
+                    if count
+                )
+                if summary:
+                    lines.append(
+                        f"- Plan {plan_id} required-role frequency fallback(s): {summary}"
+                    )
+
         if not self.plan_relaxation_levels:
             lines.append("- No valid plans were generated.")
         elif self.used_relaxation:
             lines.append(
-                "- Planning relaxation was used. Original frequency values were not changed."
+                "- Planning relaxation was used. Original frequency values were not changed; "
+                "frequency fallback was limited to required roles."
             )
         else:
             lines.append("- Planning relaxation was not needed.")
@@ -195,80 +229,127 @@ def update_participation_tracking(shuffled_df, week_roles, week_index):
         ] = week_index
 
 
-def select_musicians(band_df, week_roles):
-    priority_instruments = {
-        "guitar": GUITARIST_COL,
-        "drums": DRUMMER_COL,
-    }
-
-    for instrument, role in priority_instruments.items():
-        assigned_members = get_assigned_members(week_roles)
-        available_for_instrument = band_df[
-            (band_df[instrument] == 1) & (~band_df["name"].isin(assigned_members))
-        ]
-        primary_available = available_for_instrument[
-            available_for_instrument["primary_instrument"] == instrument
-        ]
-
-        if available_for_instrument.empty:
-            continue
-
-        if not primary_available.empty:
-            musician = primary_available.loc[
-                primary_available["last_participation"].idxmin(),
-                "name",
-            ]
-        else:
-            musician = available_for_instrument.loc[
-                available_for_instrument["last_participation"].idxmin(),
-                "name",
-            ]
-
-        week_roles[role] = musician
-
-    secondary_instruments = {
-        "bass": BASSIST_COL,
-        "keyboard": KEYBOARDIST_COL,
-    }
-
-    for instrument, role in secondary_instruments.items():
-        assigned_members = get_assigned_members(week_roles)
-        primary_available = band_df[
-            (band_df["primary_instrument"] == instrument)
-            & (~band_df["name"].isin(assigned_members))
-        ]
-
-        if primary_available.empty:
-            continue
-
-        musician = primary_available.loc[
-            primary_available["last_participation"].idxmin(),
-            "name",
-        ]
-        week_roles[role] = musician
+def _is_role_filled(week_roles, role):
+    return pd.notna(week_roles.get(role))
 
 
-def select_vocalists(band_df, week_roles):
+def _get_instrument_role_candidates(band_df, role, week_roles):
     assigned_members = get_assigned_members(week_roles)
+    instrument = INSTRUMENT_BY_ROLE[role]
 
-    available_vocalists = band_df[
+    if role in PRIMARY_ONLY_ROLES:
+        instrument_mask = band_df["primary_instrument"] == instrument
+    else:
+        instrument_mask = band_df[instrument] == 1
+
+    return band_df[instrument_mask & (~band_df["name"].isin(assigned_members))]
+
+
+def _select_least_recent_instrument_candidate(candidates, instrument):
+    primary_available = candidates[candidates["primary_instrument"] == instrument]
+    selection_pool = primary_available if not primary_available.empty else candidates
+    return selection_pool["last_participation"].idxmin()
+
+
+def select_instrument_role(band_df, role, week_roles):
+    if _is_role_filled(week_roles, role):
+        return None
+
+    candidates = _get_instrument_role_candidates(band_df, role, week_roles)
+    if candidates.empty:
+        return None
+
+    instrument = INSTRUMENT_BY_ROLE[role]
+    musician_index = _select_least_recent_instrument_candidate(candidates, instrument)
+    week_roles[role] = candidates.loc[musician_index, "name"]
+    return musician_index
+
+
+def select_required_instrument_roles(band_df, week_roles, required_roles):
+    selected_indices = {}
+    remaining_roles = [
+        role
+        for role in required_roles
+        if role in INSTRUMENT_BY_ROLE and not _is_role_filled(week_roles, role)
+    ]
+
+    while remaining_roles:
+        role = min(
+            remaining_roles,
+            key=lambda candidate_role: (
+                len(_get_instrument_role_candidates(band_df, candidate_role, week_roles)),
+                INSTRUMENT_ROLE_TIEBREAK[candidate_role],
+            ),
+        )
+        musician_index = select_instrument_role(band_df, role, week_roles)
+        if musician_index is not None:
+            selected_indices[role] = musician_index
+        remaining_roles.remove(role)
+
+    return selected_indices
+
+
+def select_optional_instrument_roles(band_df, week_roles):
+    selected_indices = {}
+    for role in (GUITARIST_COL, DRUMMER_COL, BASSIST_COL, KEYBOARDIST_COL):
+        musician_index = select_instrument_role(band_df, role, week_roles)
+        if musician_index is not None:
+            selected_indices[role] = musician_index
+    return selected_indices
+
+
+def select_musicians(band_df, week_roles, required_roles=()):
+    selected_indices = {}
+    selected_indices.update(
+        select_required_instrument_roles(band_df, week_roles, required_roles)
+    )
+    selected_indices.update(select_optional_instrument_roles(band_df, week_roles))
+    return selected_indices
+
+
+def _get_vocalist_candidates(band_df, week_roles):
+    assigned_members = get_assigned_members(week_roles)
+    return band_df[
         (band_df["primary_instrument"] == "voice")
         & (~band_df["name"].isin(assigned_members))
     ]
 
+
+def select_vocalist_from_band(band_df, week_roles):
+    if _is_role_filled(week_roles, VOCALIST_1_COL):
+        return None
+
+    available_vocalists = _get_vocalist_candidates(band_df, week_roles)
     if not available_vocalists.empty:
-        vocalist = available_vocalists.loc[
-            available_vocalists["last_participation"].idxmin(),
-            "name",
-        ]
+        vocalist_index = available_vocalists["last_participation"].idxmin()
+        vocalist = available_vocalists.loc[vocalist_index, "name"]
 
         if not pd.isna(week_roles[GUITARIST_COL]):
             week_roles[VOCALIST_1_COL] = vocalist
             week_roles[VOCALIST_2_COL] = week_roles[GUITARIST_COL]
         else:
             week_roles[VOCALIST_1_COL] = vocalist
-    elif not pd.isna(week_roles[GUITARIST_COL]):
+
+        return vocalist_index
+
+    return None
+
+
+def select_vocalists(band_df, week_roles):
+    vocalist_index = select_vocalist_from_band(band_df, week_roles)
+    if vocalist_index is None and not pd.isna(week_roles[GUITARIST_COL]):
         week_roles[VOCALIST_1_COL] = week_roles[GUITARIST_COL]
+    return vocalist_index
+
+
+def assign_guitarist_as_second_vocalist(week_roles):
+    if (
+        pd.notna(week_roles[VOCALIST_1_COL])
+        and pd.notna(week_roles[GUITARIST_COL])
+        and pd.isna(week_roles[VOCALIST_2_COL])
+        and week_roles[VOCALIST_1_COL] != week_roles[GUITARIST_COL]
+    ):
+        week_roles[VOCALIST_2_COL] = week_roles[GUITARIST_COL]
 
 
 def iter_director_rehearsal_options(available, possible_director_index, available_band):
@@ -279,7 +360,81 @@ def iter_director_rehearsal_options(available, possible_director_index, availabl
         yield "Saturday afternoon", available_band[available_band["saturday_pm"] == 1]
 
 
-def score_week_roles(week_roles, band_size, relaxation_policy: RelaxationPolicy):
+def filter_band_by_rehearsal_time(band_df, rehearsal_time):
+    if rehearsal_time == "Saturday morning":
+        return band_df[band_df["saturday_am"] == 1]
+    if rehearsal_time == "Saturday afternoon":
+        return band_df[band_df["saturday_pm"] == 1]
+    return pd.DataFrame()
+
+
+def _record_relaxed_assignment(
+    role,
+    musician_index,
+    strict_band,
+    frequency_relaxations,
+):
+    if musician_index is not None and musician_index not in strict_band.index:
+        frequency_relaxations[role] += 1
+
+
+def fill_missing_required_roles_with_relaxed_frequency(
+    strict_band,
+    relaxed_band,
+    week_roles,
+    required_roles,
+    frequency_relaxations,
+):
+    missing_instrument_roles = [
+        role
+        for role in required_roles
+        if role in INSTRUMENT_BY_ROLE and not _is_role_filled(week_roles, role)
+    ]
+
+    while missing_instrument_roles:
+        role = min(
+            missing_instrument_roles,
+            key=lambda candidate_role: (
+                len(
+                    _get_instrument_role_candidates(
+                        relaxed_band,
+                        candidate_role,
+                        week_roles,
+                    )
+                ),
+                INSTRUMENT_ROLE_TIEBREAK[candidate_role],
+            ),
+        )
+        musician_index = select_instrument_role(relaxed_band, role, week_roles)
+        _record_relaxed_assignment(
+            role,
+            musician_index,
+            strict_band,
+            frequency_relaxations,
+        )
+        missing_instrument_roles.remove(role)
+
+    if (
+        VOCALIST_1_COL in required_roles
+        and not _is_role_filled(week_roles, VOCALIST_1_COL)
+    ):
+        vocalist_index = select_vocalist_from_band(relaxed_band, week_roles)
+        _record_relaxed_assignment(
+            VOCALIST_1_COL,
+            vocalist_index,
+            strict_band,
+            frequency_relaxations,
+        )
+        if vocalist_index is None and not pd.isna(week_roles[GUITARIST_COL]):
+            week_roles[VOCALIST_1_COL] = week_roles[GUITARIST_COL]
+
+
+def score_week_roles(
+    week_roles,
+    band_size,
+    relaxation_policy: RelaxationPolicy,
+    frequency_relaxations_used=0,
+):
     required_roles_filled = sum(
         pd.notna(week_roles[role])
         for role in relaxation_policy.required_roles
@@ -293,6 +448,7 @@ def score_week_roles(week_roles, band_size, relaxation_policy: RelaxationPolicy)
 
     return (
         required_roles_filled,
+        -frequency_relaxations_used,
         preferred_roles_filled,
         total_roles_filled,
         assigned_members,
@@ -310,88 +466,171 @@ def select_best_band_for_week(
     week_index,
     frequency_policy: FrequencyPolicy | None = None,
     relaxation_policy: RelaxationPolicy | None = None,
+    frequency_relaxation_counts: Counter | None = None,
 ):
     frequency_policy = frequency_policy or FrequencyPolicy()
     relaxation_policy = relaxation_policy or RelaxationPolicy.from_level(0)
+    strict_frequency_policy = FrequencyPolicy(
+        relaxation_level=0,
+        min_frequency=frequency_policy.min_frequency,
+        max_frequency=frequency_policy.max_frequency,
+    )
     director_rotation_gap = relaxation_policy.director_rotation_gap(director_count)
-    available = filters.get_weekly_available_members(
+    saturday_available = filters.get_weekly_saturday_available_members(
         shuffled_df,
         saturday_date,
+    )
+    strict_available = filters.filter_by_frequency(
+        saturday_available,
+        week_index,
+        strict_frequency_policy,
+    )
+    relaxed_available = filters.filter_by_frequency(
+        saturday_available,
         week_index,
         frequency_policy,
     )
-    available_directors = filters.get_available_directors(
-        available,
+    strict_directors = filters.get_available_directors(
+        strict_available,
         week_index,
         director_rotation_gap,
     )
+    available_directors = strict_directors
+
+    if frequency_policy.relaxation_level > 0:
+        relaxed_directors = filters.get_available_directors(
+            relaxed_available,
+            week_index,
+            director_rotation_gap,
+        )
+        relaxed_only_directors = relaxed_directors.drop(
+            strict_directors.index,
+            errors="ignore",
+        )
+        available_directors = pd.concat([strict_directors, relaxed_only_directors])
 
     selected_score = None
     selected_roles = None
     selected_rehearsal_time = np.nan
+    selected_frequency_relaxations = Counter()
 
     for possible_director_index in available_directors.index:
         possible_director = available_directors.loc[possible_director_index, "name_norm"]
         possible_director_name = available_directors.loc[possible_director_index, "name"]
-        available_band = filters.get_available_band(
-            available,
+        director_uses_relaxed_frequency = (
+            possible_director_index not in strict_directors.index
+        )
+        strict_available_band = filters.get_available_band(
+            strict_available,
+            possible_director_index,
+            week_index,
+            director_rotation_gap,
+            strict_frequency_policy,
+        )
+        relaxed_available_band = filters.get_available_band(
+            relaxed_available,
             possible_director_index,
             week_index,
             director_rotation_gap,
             frequency_policy,
         )
 
-        if available_band.empty:
+        if strict_available_band.empty and relaxed_available_band.empty:
             continue
 
-        available_band_names = available_band["name_norm"].values
+        validation_band = (
+            relaxed_available_band
+            if director_uses_relaxed_frequency or strict_available_band.empty
+            else strict_available_band
+        )
+        validation_band_names = validation_band["name_norm"].values
 
         if not filters.represented_director_validation(
-            available,
+            saturday_available,
             possible_director_index,
             team_members,
-            available_band_names,
+            validation_band_names,
         ):
             continue
 
-        available_band = filters.filter_represented_members(
-            available_band,
+        strict_available_band_names = strict_available_band["name_norm"].values
+        relaxed_available_band_names = relaxed_available_band["name_norm"].values
+
+        strict_available_band = filters.filter_represented_members(
+            strict_available_band,
             possible_director,
             team_members,
-            available_band_names,
+            strict_available_band_names,
+        )
+        relaxed_available_band = filters.filter_represented_members(
+            relaxed_available_band,
+            possible_director,
+            team_members,
+            relaxed_available_band_names,
         )
 
-        if available_band.empty:
+        if strict_available_band.empty and relaxed_available_band.empty:
             continue
 
-        for possible_rehearsal_time, possible_band in iter_director_rehearsal_options(
-            available,
+        for possible_rehearsal_time, _ in iter_director_rehearsal_options(
+            saturday_available,
             possible_director_index,
-            available_band,
+            relaxed_available_band,
         ):
-            if possible_band.empty:
+            strict_possible_band = filter_band_by_rehearsal_time(
+                strict_available_band,
+                possible_rehearsal_time,
+            )
+            relaxed_possible_band = filter_band_by_rehearsal_time(
+                relaxed_available_band,
+                possible_rehearsal_time,
+            )
+
+            if strict_possible_band.empty and relaxed_possible_band.empty:
                 continue
 
             possible_roles = week_roles.copy()
+            possible_frequency_relaxations = Counter()
             possible_roles[DIRECTOR_COL] = possible_director_name
-            select_musicians(possible_band, possible_roles)
-            select_vocalists(possible_band, possible_roles)
+
+            if director_uses_relaxed_frequency:
+                possible_frequency_relaxations[DIRECTOR_COL] += 1
+
+            select_required_instrument_roles(
+                strict_possible_band,
+                possible_roles,
+                relaxation_policy.required_roles,
+            )
+            select_vocalists(strict_possible_band, possible_roles)
+            fill_missing_required_roles_with_relaxed_frequency(
+                strict_possible_band,
+                relaxed_possible_band,
+                possible_roles,
+                relaxation_policy.required_roles,
+                possible_frequency_relaxations,
+            )
+            select_optional_instrument_roles(strict_possible_band, possible_roles)
+            assign_guitarist_as_second_vocalist(possible_roles)
 
             possible_score = score_week_roles(
                 possible_roles,
-                len(possible_band),
+                len(strict_possible_band),
                 relaxation_policy,
+                sum(possible_frequency_relaxations.values()),
             )
             if selected_score is None or possible_score > selected_score:
                 selected_score = possible_score
                 selected_roles = possible_roles
                 selected_rehearsal_time = possible_rehearsal_time
+                selected_frequency_relaxations = possible_frequency_relaxations
 
     if selected_roles is None:
         return
 
     week_roles.update(selected_roles)
     week_meta[REHEARSAL_TIME_COL] = selected_rehearsal_time
+    if frequency_relaxation_counts is not None:
+        frequency_relaxation_counts.update(selected_frequency_relaxations)
     update_participation_tracking(shuffled_df, week_roles, week_index)
 
 
@@ -405,6 +644,7 @@ def build_candidate_plan(
     total_weeks,
     frequency_policy: FrequencyPolicy,
     relaxation_policy: RelaxationPolicy,
+    frequency_relaxation_counts: Counter | None = None,
 ):
     working_df = df.copy()
     working_df["last_participation"] = -99
@@ -435,6 +675,7 @@ def build_candidate_plan(
             VOCALIST_2_COL: np.nan,
         }
 
+        week_frequency_relaxations = Counter()
         select_best_band_for_week(
             shuffled_df,
             team_members,
@@ -445,9 +686,15 @@ def build_candidate_plan(
             week_index,
             frequency_policy,
             relaxation_policy,
+            week_frequency_relaxations,
         )
 
         plan_rows.append({**week_meta, **week_roles})
+        if (
+            frequency_relaxation_counts is not None
+            and week_index >= total_weeks - plan_weeks
+        ):
+            frequency_relaxation_counts.update(week_frequency_relaxations)
 
     return pd.DataFrame(plan_rows[-plan_weeks:])
 
@@ -536,6 +783,7 @@ def generate_plans_with_report(
 
     valid_plans: dict[int, pd.DataFrame] = {}
     plan_relaxation_levels: dict[int, int] = {}
+    plan_frequency_relaxations: dict[int, dict[str, int]] = {}
     attempts: list[PlanGenerationAttempt] = []
     generation_start = monotonic()
 
@@ -559,6 +807,7 @@ def generate_plans_with_report(
                 break
 
             iterations += 1
+            candidate_frequency_relaxations = Counter()
             plan = build_candidate_plan(
                 df,
                 team_members,
@@ -569,12 +818,20 @@ def generate_plans_with_report(
                 total_weeks,
                 frequency_policy,
                 relaxation_policy,
+                candidate_frequency_relaxations,
             )
 
             if is_valid_plan(plan, relaxation_policy):
                 plan_id = len(valid_plans) + 1
                 valid_plans[plan_id] = plan.copy()
                 plan_relaxation_levels[plan_id] = relaxation_level
+                plan_frequency_relaxations[plan_id] = dict(
+                    sorted(
+                        (role, count)
+                        for role, count in candidate_frequency_relaxations.items()
+                        if count
+                    )
+                )
                 if len(valid_plans) == max_options:
                     break
 
@@ -603,6 +860,7 @@ def generate_plans_with_report(
         total_elapsed_seconds=monotonic() - generation_start,
         attempts=tuple(attempts),
         plan_relaxation_levels=plan_relaxation_levels,
+        plan_frequency_relaxations=plan_frequency_relaxations,
     )
 
     print(f"{len(valid_plans)} plans generated.")

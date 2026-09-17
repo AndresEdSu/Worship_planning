@@ -63,6 +63,27 @@ def respects_frequency(row, week_index, frequency_policy: FrequencyPolicy | None
     return frequency_policy.respects_frequency(row, week_index)
 
 
+def get_weekly_saturday_available_members(df, saturday_date):
+    available = df.copy()
+    return available[
+        available.apply(lambda row: is_available_on_saturday(row, saturday_date), axis=1)
+    ]
+
+
+def filter_by_frequency(
+    available,
+    week_index,
+    frequency_policy: FrequencyPolicy | None = None,
+):
+    frequency_policy = frequency_policy or FrequencyPolicy()
+    return available[
+        available.apply(
+            lambda row: respects_frequency(row, week_index, frequency_policy),
+            axis=1,
+        )
+    ]
+
+
 def is_available_to_direct(row, week_index, director_rotation_gap):
     director = row["director"]
     last_direction = row["last_direction"]
@@ -94,18 +115,8 @@ def get_weekly_available_members(
     frequency_policy: FrequencyPolicy | None = None,
 ):
     frequency_policy = frequency_policy or FrequencyPolicy()
-    available = df.copy()
-    available = available[
-        available.apply(lambda row: is_available_on_saturday(row, saturday_date), axis=1)
-    ]
-    available = available[
-        available.apply(
-            lambda row: respects_frequency(row, week_index, frequency_policy),
-            axis=1,
-        )
-    ]
-
-    return available
+    available = get_weekly_saturday_available_members(df, saturday_date)
+    return filter_by_frequency(available, week_index, frequency_policy)
 
 
 def get_available_directors(available, week_index, director_rotation_gap):
@@ -125,7 +136,7 @@ def get_available_band(
     frequency_policy: FrequencyPolicy | None = None,
 ):
     frequency_policy = frequency_policy or FrequencyPolicy()
-    available_band = available.drop(possible_director_index)
+    available_band = available.drop(possible_director_index, errors="ignore")
     available_band = available_band[
         available_band.apply(
             lambda row: is_available_to_play(
