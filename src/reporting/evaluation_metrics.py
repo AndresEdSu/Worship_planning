@@ -264,7 +264,7 @@ def calculate_rest_score(max_consecutive_weeks):
     """
     Calculate rest score.
     
-    Measures adequate spacing between consecutive participations.
+    Penalizes consecutive-week participation streaks directly.
     
     Parameters
     ----------
@@ -274,13 +274,23 @@ def calculate_rest_score(max_consecutive_weeks):
     Returns
     -------
     tuple
-        (rest_score, avg_max_consecutive)
+        (rest_score, avg_max_consecutive, two_week_streaks, long_streaks)
     """
     avg_max_consec = float(max_consecutive_weeks.mean()) if len(max_consecutive_weeks) else 0.0
-    rest_score = 100 - 25 * max(0, (avg_max_consec - 2))
+    two_week_streaks = int((max_consecutive_weeks == 2).sum())
+    long_streaks = int((max_consecutive_weeks >= 3).sum())
+    long_streak_excess = int(
+        (max_consecutive_weeks[max_consecutive_weeks >= 3] - 2).sum()
+    )
+    penalty = (
+        8 * two_week_streaks
+        + 20 * long_streaks
+        + 10 * long_streak_excess
+    )
+    rest_score = 100 - penalty
     rest_score = float(np.clip(rest_score, 0, 100))
     
-    return rest_score, avg_max_consec
+    return rest_score, avg_max_consec, two_week_streaks, long_streaks
 
 
 def calculate_overall_score(coverage_score, equity_score, rest_score, resilience_score,
@@ -367,7 +377,12 @@ def evaluate_plan(df, date_col, role_cols, critical_roles, weights=None):
     )
     resilience_score, avg_top_share = calculate_resilience_score(long, critical_roles)
     equity_score, cv = calculate_equity_score(participations)
-    rest_score, avg_max_consec = calculate_rest_score(max_consec)
+    (
+        rest_score,
+        avg_max_consec,
+        two_week_streaks,
+        long_streaks,
+    ) = calculate_rest_score(max_consec)
     
     overall_score = calculate_overall_score(
         coverage_score, equity_score, rest_score, resilience_score,
@@ -396,7 +411,9 @@ def evaluate_plan(df, date_col, role_cols, critical_roles, weights=None):
         'missing_max': missing_max,
         'participation_cv': cv,
         'avg_critical_top_share': avg_top_share,
-        "avg_max_consecutive_weeks": avg_max_consec
+        "avg_max_consecutive_weeks": avg_max_consec,
+        "two_week_streaks": two_week_streaks,
+        "long_streaks": long_streaks,
     }
     
     metrics = {

@@ -28,6 +28,8 @@ SUMMARY_TABLE_FORMAT = {
     "Resilience": "{:.1f}",
     "Missing": "{:.0f}",
     "Avg. Max Consecutive Weeks": "{:.2f}",
+    "2-Week Streaks": "{:.0f}",
+    "3+ Week Streaks": "{:.0f}",
 }
 PARTICIPANTS_TABLE_FORMAT = {
     "Participations": "{:.0f}",
@@ -261,7 +263,8 @@ def render_comparison_tab(dashboard_view: dict, best_plan_id: int, best_plan_vie
     st.write(
         f"Plan `{best_plan_id}` ranked first with {best_plan_view['score_metrics']['overall_score']['score_display']}. "
         f"Its strongest area is coverage ({best_plan_view['score_metrics']['coverage_score']['score_display']}) "
-        f"and it maintains an average streak of {best_plan_view['other_metrics']['average_streak']} consecutive weeks."
+        f"and it has {best_plan_view['other_metrics']['two_week_streaks']} two-week streak(s) "
+        f"and {best_plan_view['other_metrics']['long_streaks']} longer streak(s)."
         )
 
 
@@ -369,7 +372,9 @@ def render_selected_plan_tab(
     st.write(
         f"Difference vs. the winning plan: `{delta:+.2f}` points. "
         f"Coefficient of variation: `{selected_plan_view['other_metrics']['coefficient_variation']}`. "
-        f"Average top share in critical roles: `{selected_plan_view['other_metrics']['critical_top_share']}`."
+        f"Average top share in critical roles: `{selected_plan_view['other_metrics']['critical_top_share']}`. "
+        f"Two-week streaks: `{selected_plan_view['other_metrics']['two_week_streaks']}`. "
+        f"Longer streaks: `{selected_plan_view['other_metrics']['long_streaks']}`."
     )
     render_plan_tables(selected_plan_view)
 

@@ -15,6 +15,8 @@ SUMMARY_COLUMN_LABELS = {
     "resilience_score": "Resilience",
     "missing_total": "Missing",
     "avg_max_consecutive_weeks": "Avg. Max Consecutive Weeks",
+    "two_week_streaks": "2-Week Streaks",
+    "long_streaks": "3+ Week Streaks",
 }
 SCORE_LABELS = {
     "overall_score": "Overall Score",
@@ -90,6 +92,8 @@ def build_summary_display_df(summary_df: pd.DataFrame) -> pd.DataFrame:
             "resilience_score",
             "missing_total",
             "avg_max_consecutive_weeks",
+            "two_week_streaks",
+            "long_streaks",
         ]
     ].rename(columns=SUMMARY_COLUMN_LABELS)
 
@@ -147,6 +151,8 @@ def build_other_metrics(
         "coefficient_variation": format_decimal(other_values["participation_cv"], 3),
         "critical_top_share": format_decimal(other_values["avg_critical_top_share"], 3),
         "average_streak": format_decimal(other_values["avg_max_consecutive_weeks"], 2),
+        "two_week_streaks": format_integer(other_values["two_week_streaks"]),
+        "long_streaks": format_integer(other_values["long_streaks"]),
     }
 
 

@@ -61,11 +61,15 @@ class PlanGenerationReport:
     plan_weeks: int
     warmup_weeks: int
     director_count: int
+    minimum_direction_count: int
     frequency_max: int
     total_elapsed_seconds: float
     attempts: tuple[PlanGenerationAttempt, ...]
     plan_relaxation_levels: dict[int, int]
     plan_frequency_relaxations: dict[int, dict[str, int]] = field(default_factory=dict)
+    plan_consecutive_frequency_relaxations: dict[int, dict[str, int]] = field(
+        default_factory=dict
+    )
 
     @property
     def used_relaxation(self) -> bool:
@@ -92,6 +96,7 @@ class PlanGenerationReport:
             f"- Plan weeks: {self.plan_weeks}",
             f"- Warmup weeks: {self.warmup_weeks}",
             f"- Director count: {self.director_count}",
+            f"- Minimum directions per director: {self.minimum_direction_count}",
             f"- Frequency max: {self.frequency_max}",
             f"- Total elapsed: {self.total_elapsed_seconds:.1f}s",
         ]
@@ -128,6 +133,22 @@ class PlanGenerationReport:
                 if summary:
                     lines.append(
                         f"- Plan {plan_id} required-role frequency fallback(s): {summary}"
+                    )
+
+        if self.plan_consecutive_frequency_relaxations:
+            for plan_id, role_counts in sorted(
+                self.plan_consecutive_frequency_relaxations.items()
+            ):
+                if not role_counts:
+                    continue
+                summary = ", ".join(
+                    f"{role}={count}"
+                    for role, count in sorted(role_counts.items())
+                    if count
+                )
+                if summary:
+                    lines.append(
+                        f"- Plan {plan_id} consecutive fallback(s): {summary}"
                     )
 
         if not self.plan_relaxation_levels:
@@ -223,14 +244,35 @@ def update_participation_tracking(shuffled_df, week_roles, week_index):
     for member in assigned_members:
         shuffled_df.loc[shuffled_df["name"] == member, "last_participation"] = week_index
     if pd.notna(week_roles[DIRECTOR_COL]):
+        director_mask = shuffled_df["name"] == week_roles[DIRECTOR_COL]
         shuffled_df.loc[
-            shuffled_df["name"] == week_roles[DIRECTOR_COL],
+            director_mask,
             "last_direction",
         ] = week_index
+        shuffled_df.loc[director_mask, "direction_count"] += 1
 
 
 def _is_role_filled(week_roles, role):
     return pd.notna(week_roles.get(role))
+
+
+def participated_previous_week(row, week_index):
+    if pd.isna(row.get("last_participation")):
+        return False
+    return int(row["last_participation"]) == week_index - 1
+
+
+def prefer_non_consecutive_candidates(candidates, week_index):
+    if candidates.empty:
+        return candidates
+
+    non_consecutive = candidates[
+        ~candidates.apply(
+            lambda row: participated_previous_week(row, week_index),
+            axis=1,
+        )
+    ]
+    return non_consecutive if not non_consecutive.empty else candidates
 
 
 def _get_instrument_role_candidates(band_df, role, week_roles):
@@ -245,10 +287,30 @@ def _get_instrument_role_candidates(band_df, role, week_roles):
     return band_df[instrument_mask & (~band_df["name"].isin(assigned_members))]
 
 
+def _get_fallback_instrument_role_candidates(
+    band_df,
+    role,
+    week_roles,
+    week_index,
+):
+    candidates = _get_instrument_role_candidates(band_df, role, week_roles)
+    return prefer_non_consecutive_candidates(candidates, week_index)
+
+
 def _select_least_recent_instrument_candidate(candidates, instrument):
     primary_available = candidates[candidates["primary_instrument"] == instrument]
     selection_pool = primary_available if not primary_available.empty else candidates
     return selection_pool["last_participation"].idxmin()
+
+
+def select_instrument_role_from_candidates(candidates, role, week_roles):
+    if _is_role_filled(week_roles, role) or candidates.empty:
+        return None
+
+    instrument = INSTRUMENT_BY_ROLE[role]
+    musician_index = _select_least_recent_instrument_candidate(candidates, instrument)
+    week_roles[role] = candidates.loc[musician_index, "name"]
+    return musician_index
 
 
 def select_instrument_role(band_df, role, week_roles):
@@ -256,13 +318,7 @@ def select_instrument_role(band_df, role, week_roles):
         return None
 
     candidates = _get_instrument_role_candidates(band_df, role, week_roles)
-    if candidates.empty:
-        return None
-
-    instrument = INSTRUMENT_BY_ROLE[role]
-    musician_index = _select_least_recent_instrument_candidate(candidates, instrument)
-    week_roles[role] = candidates.loc[musician_index, "name"]
-    return musician_index
+    return select_instrument_role_from_candidates(candidates, role, week_roles)
 
 
 def select_required_instrument_roles(band_df, week_roles, required_roles):
@@ -315,11 +371,17 @@ def _get_vocalist_candidates(band_df, week_roles):
     ]
 
 
-def select_vocalist_from_band(band_df, week_roles):
+def select_vocalist_from_band(band_df, week_roles, week_index=None):
     if _is_role_filled(week_roles, VOCALIST_1_COL):
         return None
 
     available_vocalists = _get_vocalist_candidates(band_df, week_roles)
+    if week_index is not None:
+        available_vocalists = prefer_non_consecutive_candidates(
+            available_vocalists,
+            week_index,
+        )
+
     if not available_vocalists.empty:
         vocalist_index = available_vocalists["last_participation"].idxmin()
         vocalist = available_vocalists.loc[vocalist_index, "name"]
@@ -372,10 +434,18 @@ def _record_relaxed_assignment(
     role,
     musician_index,
     strict_band,
+    relaxed_band,
+    week_index,
     frequency_relaxations,
+    consecutive_frequency_relaxations,
 ):
     if musician_index is not None and musician_index not in strict_band.index:
         frequency_relaxations[role] += 1
+        if (
+            musician_index in relaxed_band.index
+            and participated_previous_week(relaxed_band.loc[musician_index], week_index)
+        ):
+            consecutive_frequency_relaxations[role] += 1
 
 
 def fill_missing_required_roles_with_relaxed_frequency(
@@ -383,7 +453,9 @@ def fill_missing_required_roles_with_relaxed_frequency(
     relaxed_band,
     week_roles,
     required_roles,
+    week_index,
     frequency_relaxations,
+    consecutive_frequency_relaxations,
 ):
     missing_instrument_roles = [
         role
@@ -396,21 +468,35 @@ def fill_missing_required_roles_with_relaxed_frequency(
             missing_instrument_roles,
             key=lambda candidate_role: (
                 len(
-                    _get_instrument_role_candidates(
+                    _get_fallback_instrument_role_candidates(
                         relaxed_band,
                         candidate_role,
                         week_roles,
+                        week_index,
                     )
                 ),
                 INSTRUMENT_ROLE_TIEBREAK[candidate_role],
             ),
         )
-        musician_index = select_instrument_role(relaxed_band, role, week_roles)
+        candidates = _get_fallback_instrument_role_candidates(
+            relaxed_band,
+            role,
+            week_roles,
+            week_index,
+        )
+        musician_index = select_instrument_role_from_candidates(
+            candidates,
+            role,
+            week_roles,
+        )
         _record_relaxed_assignment(
             role,
             musician_index,
             strict_band,
+            relaxed_band,
+            week_index,
             frequency_relaxations,
+            consecutive_frequency_relaxations,
         )
         missing_instrument_roles.remove(role)
 
@@ -418,12 +504,19 @@ def fill_missing_required_roles_with_relaxed_frequency(
         VOCALIST_1_COL in required_roles
         and not _is_role_filled(week_roles, VOCALIST_1_COL)
     ):
-        vocalist_index = select_vocalist_from_band(relaxed_band, week_roles)
+        vocalist_index = select_vocalist_from_band(
+            relaxed_band,
+            week_roles,
+            week_index,
+        )
         _record_relaxed_assignment(
             VOCALIST_1_COL,
             vocalist_index,
             strict_band,
+            relaxed_band,
+            week_index,
             frequency_relaxations,
+            consecutive_frequency_relaxations,
         )
         if vocalist_index is None and not pd.isna(week_roles[GUITARIST_COL]):
             week_roles[VOCALIST_1_COL] = week_roles[GUITARIST_COL]
@@ -433,6 +526,9 @@ def score_week_roles(
     week_roles,
     band_size,
     relaxation_policy: RelaxationPolicy,
+    director_direction_count=0,
+    director_last_direction=-99,
+    consecutive_frequency_relaxations_used=0,
     frequency_relaxations_used=0,
 ):
     required_roles_filled = sum(
@@ -448,6 +544,9 @@ def score_week_roles(
 
     return (
         required_roles_filled,
+        -consecutive_frequency_relaxations_used,
+        -director_direction_count,
+        -director_last_direction,
         -frequency_relaxations_used,
         preferred_roles_filled,
         total_roles_filled,
@@ -467,6 +566,7 @@ def select_best_band_for_week(
     frequency_policy: FrequencyPolicy | None = None,
     relaxation_policy: RelaxationPolicy | None = None,
     frequency_relaxation_counts: Counter | None = None,
+    consecutive_frequency_relaxation_counts: Counter | None = None,
 ):
     frequency_policy = frequency_policy or FrequencyPolicy()
     relaxation_policy = relaxation_policy or RelaxationPolicy.from_level(0)
@@ -513,10 +613,17 @@ def select_best_band_for_week(
     selected_roles = None
     selected_rehearsal_time = np.nan
     selected_frequency_relaxations = Counter()
+    selected_consecutive_frequency_relaxations = Counter()
 
     for possible_director_index in available_directors.index:
         possible_director = available_directors.loc[possible_director_index, "name_norm"]
         possible_director_name = available_directors.loc[possible_director_index, "name"]
+        director_direction_count = int(
+            available_directors.loc[possible_director_index, "direction_count"]
+        )
+        director_last_direction = int(
+            available_directors.loc[possible_director_index, "last_direction"]
+        )
         director_uses_relaxed_frequency = (
             possible_director_index not in strict_directors.index
         )
@@ -591,10 +698,16 @@ def select_best_band_for_week(
 
             possible_roles = week_roles.copy()
             possible_frequency_relaxations = Counter()
+            possible_consecutive_frequency_relaxations = Counter()
             possible_roles[DIRECTOR_COL] = possible_director_name
 
             if director_uses_relaxed_frequency:
                 possible_frequency_relaxations[DIRECTOR_COL] += 1
+                if participated_previous_week(
+                    available_directors.loc[possible_director_index],
+                    week_index,
+                ):
+                    possible_consecutive_frequency_relaxations[DIRECTOR_COL] += 1
 
             select_required_instrument_roles(
                 strict_possible_band,
@@ -607,7 +720,9 @@ def select_best_band_for_week(
                 relaxed_possible_band,
                 possible_roles,
                 relaxation_policy.required_roles,
+                week_index,
                 possible_frequency_relaxations,
+                possible_consecutive_frequency_relaxations,
             )
             select_optional_instrument_roles(strict_possible_band, possible_roles)
             assign_guitarist_as_second_vocalist(possible_roles)
@@ -616,6 +731,9 @@ def select_best_band_for_week(
                 possible_roles,
                 len(strict_possible_band),
                 relaxation_policy,
+                director_direction_count,
+                director_last_direction,
+                sum(possible_consecutive_frequency_relaxations.values()),
                 sum(possible_frequency_relaxations.values()),
             )
             if selected_score is None or possible_score > selected_score:
@@ -623,6 +741,9 @@ def select_best_band_for_week(
                 selected_roles = possible_roles
                 selected_rehearsal_time = possible_rehearsal_time
                 selected_frequency_relaxations = possible_frequency_relaxations
+                selected_consecutive_frequency_relaxations = (
+                    possible_consecutive_frequency_relaxations
+                )
 
     if selected_roles is None:
         return
@@ -631,6 +752,10 @@ def select_best_band_for_week(
     week_meta[REHEARSAL_TIME_COL] = selected_rehearsal_time
     if frequency_relaxation_counts is not None:
         frequency_relaxation_counts.update(selected_frequency_relaxations)
+    if consecutive_frequency_relaxation_counts is not None:
+        consecutive_frequency_relaxation_counts.update(
+            selected_consecutive_frequency_relaxations
+        )
     update_participation_tracking(shuffled_df, week_roles, week_index)
 
 
@@ -645,10 +770,12 @@ def build_candidate_plan(
     frequency_policy: FrequencyPolicy,
     relaxation_policy: RelaxationPolicy,
     frequency_relaxation_counts: Counter | None = None,
+    consecutive_frequency_relaxation_counts: Counter | None = None,
 ):
     working_df = df.copy()
     working_df["last_participation"] = -99
     working_df["last_direction"] = -99
+    working_df["direction_count"] = 0
 
     seed = np.random.randint(0, 1_000_000)
     shuffled_df = working_df.sample(frac=1, random_state=seed).copy()
@@ -676,6 +803,7 @@ def build_candidate_plan(
         }
 
         week_frequency_relaxations = Counter()
+        week_consecutive_frequency_relaxations = Counter()
         select_best_band_for_week(
             shuffled_df,
             team_members,
@@ -687,6 +815,7 @@ def build_candidate_plan(
             frequency_policy,
             relaxation_policy,
             week_frequency_relaxations,
+            week_consecutive_frequency_relaxations,
         )
 
         plan_rows.append({**week_meta, **week_roles})
@@ -695,12 +824,55 @@ def build_candidate_plan(
             and week_index >= total_weeks - plan_weeks
         ):
             frequency_relaxation_counts.update(week_frequency_relaxations)
+        if (
+            consecutive_frequency_relaxation_counts is not None
+            and week_index >= total_weeks - plan_weeks
+        ):
+            consecutive_frequency_relaxation_counts.update(
+                week_consecutive_frequency_relaxations
+            )
 
     return pd.DataFrame(plan_rows[-plan_weeks:])
 
 
-def is_valid_plan(plan: pd.DataFrame, relaxation_policy: RelaxationPolicy) -> bool:
-    return not plan[list(relaxation_policy.required_roles)].isna().any().any()
+def minimum_direction_count(plan_weeks: int, director_count: int) -> int:
+    if director_count < 1:
+        return 0
+    return plan_weeks // director_count
+
+
+def has_minimum_director_coverage(
+    plan: pd.DataFrame,
+    director_names: list[str],
+    minimum_count: int,
+) -> bool:
+    if minimum_count < 1:
+        return True
+
+    direction_counts = plan[DIRECTOR_COL].value_counts()
+    return all(
+        direction_counts.get(director_name, 0) >= minimum_count
+        for director_name in director_names
+    )
+
+
+def is_valid_plan(
+    plan: pd.DataFrame,
+    relaxation_policy: RelaxationPolicy,
+    director_names: list[str] | None = None,
+    minimum_director_count: int = 0,
+) -> bool:
+    if plan[list(relaxation_policy.required_roles)].isna().any().any():
+        return False
+
+    if director_names is None:
+        return True
+
+    return has_minimum_director_coverage(
+        plan,
+        director_names,
+        minimum_director_count,
+    )
 
 
 def normalize_relax_after_seconds(relax_after_seconds: float | None) -> float | None:
@@ -738,6 +910,7 @@ def generate_plans_with_report(
 
     team_members = df["name_norm"].unique().tolist()
     directors = df[df["director"] == 1]["name_norm"].unique().tolist()
+    director_names = df[df["director"] == 1]["name"].unique().tolist()
     director_count = len(directors)
     frequency_values = pd.to_numeric(df["frequency"], errors="coerce").dropna()
     frequency_max = (
@@ -766,6 +939,7 @@ def generate_plans_with_report(
             plan_weeks=0,
             warmup_weeks=0,
             director_count=0,
+            minimum_direction_count=0,
             frequency_max=frequency_max,
             total_elapsed_seconds=0.0,
             attempts=(),
@@ -780,10 +954,12 @@ def generate_plans_with_report(
         warmup_weeks=resolved_warmup_weeks,
         max_frequency=frequency_max,
     )
+    minimum_director_count = minimum_direction_count(plan_weeks, director_count)
 
     valid_plans: dict[int, pd.DataFrame] = {}
     plan_relaxation_levels: dict[int, int] = {}
     plan_frequency_relaxations: dict[int, dict[str, int]] = {}
+    plan_consecutive_frequency_relaxations: dict[int, dict[str, int]] = {}
     attempts: list[PlanGenerationAttempt] = []
     generation_start = monotonic()
 
@@ -808,6 +984,7 @@ def generate_plans_with_report(
 
             iterations += 1
             candidate_frequency_relaxations = Counter()
+            candidate_consecutive_frequency_relaxations = Counter()
             plan = build_candidate_plan(
                 df,
                 team_members,
@@ -819,9 +996,15 @@ def generate_plans_with_report(
                 frequency_policy,
                 relaxation_policy,
                 candidate_frequency_relaxations,
+                candidate_consecutive_frequency_relaxations,
             )
 
-            if is_valid_plan(plan, relaxation_policy):
+            if is_valid_plan(
+                plan,
+                relaxation_policy,
+                director_names,
+                minimum_director_count,
+            ):
                 plan_id = len(valid_plans) + 1
                 valid_plans[plan_id] = plan.copy()
                 plan_relaxation_levels[plan_id] = relaxation_level
@@ -829,6 +1012,13 @@ def generate_plans_with_report(
                     sorted(
                         (role, count)
                         for role, count in candidate_frequency_relaxations.items()
+                        if count
+                    )
+                )
+                plan_consecutive_frequency_relaxations[plan_id] = dict(
+                    sorted(
+                        (role, count)
+                        for role, count in candidate_consecutive_frequency_relaxations.items()
                         if count
                     )
                 )
@@ -856,11 +1046,13 @@ def generate_plans_with_report(
         plan_weeks=plan_weeks,
         warmup_weeks=resolved_warmup_weeks,
         director_count=director_count,
+        minimum_direction_count=minimum_director_count,
         frequency_max=frequency_max,
         total_elapsed_seconds=monotonic() - generation_start,
         attempts=tuple(attempts),
         plan_relaxation_levels=plan_relaxation_levels,
         plan_frequency_relaxations=plan_frequency_relaxations,
+        plan_consecutive_frequency_relaxations=plan_consecutive_frequency_relaxations,
     )
 
     print(f"{len(valid_plans)} plans generated.")

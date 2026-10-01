@@ -30,6 +30,8 @@ This project turns worship availability spreadsheets into cleaned data, generate
 - Applies representative-attendance constraints only when explicitly required per member.
 - Generates multiple planning options across progressive relaxation levels.
 - Limits frequency relaxation to required roles that cannot be filled strictly.
+- Avoids consecutive-week assignments inside frequency fallback unless no non-consecutive candidate can cover the required role.
+- Keeps director rotation balanced by requiring long plans to use every director a minimum number of times.
 - Supports planning by week count or by an inclusive Sunday date range.
 - Scores plans using coverage, equity, rest, and resilience metrics.
 - Writes a generation report describing attempts and relaxation policies used.
@@ -132,7 +134,7 @@ If neither option is provided, the plan defaults to `director_count * 2` weeks.
 ### Relaxation Levels
 
 The generator starts at level 0 and moves upward only when it cannot find enough valid plans. `--max-relaxation` defaults to 4.
-At every level, the planner first applies Saturday availability and member frequency strictly. A relaxed frequency pool is used only as a fallback for a required role that would otherwise remain empty; optional roles continue to use the strict pool.
+At every level, the planner first applies Saturday availability and member frequency strictly. A relaxed frequency pool is used only as a fallback for a required role that would otherwise remain empty; optional roles continue to use the strict pool. Inside that fallback, the planner first tries members who did not participate the previous week and only allows a consecutive-week assignment if it is needed to cover the required role.
 
 | Level | Required-role frequency fallback | Director rotation | Required roles | Preferred roles |
 |---|---|---|---|---|
@@ -142,7 +144,11 @@ At every level, the planner first applies Saturday availability and member frequ
 | 3 | Strong fallback for missing required roles | 75% rotation gap | Director, Guitarist, Drummer, Vocalist_1 | None |
 | 4 | Maximum configured fallback for missing required roles | 60% rotation gap | Director, Guitarist, Drummer, Vocalist_1 | None |
 
-The source frequency values are never modified. Relaxation only changes the effective fallback constraints used during generation, and generated reports summarize which required roles used that fallback.
+The source frequency values are never modified. Relaxation only changes the effective fallback constraints used during generation, and generated reports summarize which required roles used that fallback, including any consecutive-week fallback exceptions.
+
+For director rotation, long plans require each director to appear at least `plan_weeks // director_count` times. For example, an 18-week plan with 8 directors requires each director to direct at least twice.
+
+The rest score penalizes consecutive participation directly: each person with a two-week streak costs 8 points, and each person with a streak of three or more weeks costs a stronger long-streak penalty.
 
 ### Generation Controls
 
